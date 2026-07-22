@@ -26,98 +26,72 @@ A metodologia fundamenta-se na construção de uma arquitetura experimental comp
 6.  **Mecanismo de Feedback:** Fornece feedback contínuo ao agente de Q-Learning.
 7.  **Reprodutor de Vídeo:** Com suporte ao padrão VVC.
 
-O agente de IA opera em um modelo tabular, tomando decisões de ajuste de bitrate para maximizar uma função de recompensa que penaliza severamente eventos de *rebuffering* e situações de *overflow*.
+O agente de IA opera em um modelo tabular, tomando decisões de ajuste de bitrate para maximizar uma função de recompensa que penaliza severamente eventos de *rebuffering* e situações de overflow.
 
-## Algoritmo Q-Learning (Pseudocódigo Adaptado)
+## Detalhes Técnicos Adicionais
 
-O script `q_learning_agent.py` implementa a lógica central do agente Q-Learning. Abaixo está um pseudocódigo adaptado para ilustrar o processo:
+### Métricas de Avaliação de QoE
 
-```python
-# Inicialização
-Inicializar Q(s, a) arbitrariamente para todos os estados s e ações a
-Definir taxa de aprendizado (alpha), fator de desconto (gamma), epsilon (para exploração)
+Para avaliar a eficácia da proposta, são utilizadas as seguintes métricas:
 
-# Para cada episódio:
-  Observar estado inicial s
-  Enquanto s não for um estado terminal:
-    Escolher ação a a partir de s usando uma política derivada de Q (ex: epsilon-greedy)
-    Executar ação a, observar recompensa r e novo estado s'
-    Atualizar Q(s, a) usando a equação de Bellman:
-      Q(s, a) = Q(s, a) + alpha * [r + gamma * max(Q(s', a')) - Q(s, a)]
-    s = s'
-```
+*   **PSNR (Peak Signal-to-Noise Ratio):** Mede a fidelidade visual do vídeo reconstruído em relação ao original.
+*   **Taxa de Rebuffering:** Porcentagem de tempo em que a reprodução foi interrompida devido ao esvaziamento do buffer.
+*   **Estabilidade do Buffer:** Medida pelo desvio padrão da ocupação do buffer ao longo do tempo.
+
+O script `qoe_metrics.py` fornece implementações básicas para o cálculo dessas métricas.
+
+### Cenários Experimentais
+
+A arquitetura foi projetada para ser avaliada em diversos cenários de rede, simulados via `tc/netem`:
+
+1.  **Rede Estável:** Largura de banda constante e baixa latência.
+2.  **Rede com Flutuação de Banda:** Variações bruscas na largura de banda disponível.
+3.  **Rede com Perda de Pacotes:** Simulação de congestionamento e interferências.
+4.  **Rede com Jitter Elevado:** Variações significativas na latência.
+
+### Modelagem do Agente Q-Learning
+
+*   **Espaço de Estados:** Composto pela ocupação atual do buffer (discretizada em N níveis) e o bitrate atual da transmissão (M níveis).
+*   **Espaço de Ações:** {Diminuir Bitrate, Manter Bitrate, Aumentar Bitrate}.
+*   **Função de Recompensa:** Projetada para penalizar interrupções de reprodução (rebuffering) e recompensar a manutenção do buffer em uma zona de segurança técnica.
 
 ## Estrutura do Repositório
 
 *   `q_learning_agent.py`: Implementação do agente Q-Learning em Python.
+*   `qoe_metrics.py`: Script para cálculo de métricas de QoE.
 *   `tc_netem_config.sh`: Script para configurar o simulador de rede `tc/netem`.
 *   `vvenc_config.sh`: Script para exemplificar o uso do codificador `VVenC`.
 *   `README.md`: Este arquivo, descrevendo o projeto.
 
 ## Como Usar (Conceitual)
 
-O script `q_learning_agent.py` é um componente central do controlador adaptativo. Para utilizá-lo em um ambiente de streaming VVC, seria necessário:
-
-1.  **Integrar com o ambiente de streaming:** O agente precisaria receber informações sobre a ocupação do buffer e o bitrate atual do sistema de streaming.
-2.  **Definir estados e ações:** A discretização dos estados (ocupação do buffer, bitrate) e a definição das ações (aumentar, manter, diminuir bitrate) devem ser ajustadas conforme as especificações do sistema.
-3.  **Treinamento:** O agente seria treinado em um ambiente simulado ou real, onde aprenderia a política ótima para gerenciar o buffer.
-4.  **Avaliação:** As métricas de QoE (PSNR, taxa de *rebuffering*, estabilidade do buffer) seriam usadas para avaliar a eficácia do controle.
+1.  **Instalação dos Pré-requisitos:** Siga as instruções de instalação para `tc/netem` e `VVenC` descritas abaixo.
+2.  **Preparação dos Dados:** Utilize vídeos em formato YUV como fonte.
+3.  **Execução do Agente:** Utilize o `q_learning_agent.py` para modelar a lógica de decisão.
+4.  **Simulação e Coleta:** Execute os experimentos variando as condições de rede e colete as métricas usando o `qoe_metrics.py`.
 
 ## Componentes Adicionais e Configuração (Opcional)
 
 ### 1. Simulador de Rede: `tc/netem`
 
-O `tc/netem` é uma ferramenta do Linux para emular as propriedades da rede, como atraso, perda de pacotes, duplicação e corrupção. É essencial para simular condições de rede adversas em experimentos.
+O `tc/netem` é uma ferramenta do Linux para emular as propriedades da rede.
 
 **Instalação:**
-
-O `tc` (Traffic Control) geralmente vem pré-instalado em distribuições Linux modernas. O módulo `netem` faz parte do kernel Linux. Se não estiver disponível, pode ser necessário instalar o pacote `iproute2`:
-
 ```bash
 sudo apt update
 sudo apt install iproute2
 ```
 
 **Uso do Script `tc_netem_config.sh`:**
-
-Este script facilita a configuração de atraso, perda de pacotes e limitação de largura de banda em uma interface de rede específica.
-
 ```bash
 ./tc_netem_config.sh <interface> [delay_ms] [loss_percent] [rate_kbit]
 ```
 
-*   `<interface>`: Nome da interface de rede (ex: `eth0`, `wlan0`).
-*   `[delay_ms]`: Atraso em milissegundos (opcional, padrão: 0).
-*   `[loss_percent]`: Porcentagem de perda de pacotes (opcional, padrão: 0).
-*   `[rate_kbit]`: Largura de banda em kbit/s (opcional, padrão: ilimitado).
-
-**Exemplos:**
-
-*   Adicionar 100ms de atraso na `eth0`:
-    ```bash
-    sudo ./tc_netem_config.sh eth0 100
-    ```
-*   Adicionar 50ms de atraso e 1% de perda de pacotes na `eth0`:
-    ```bash
-    sudo ./tc_netem_config.sh eth0 50 1
-    ```
-*   Limitar a largura de banda para 10 Mbps (10000 kbit/s) na `eth0`:
-    ```bash
-    sudo ./tc_netem_config.sh eth0 0 0 10000
-    ```
-*   Remover todas as regras `tc/netem` da `eth0`:
-    ```bash
-    sudo ./tc_netem_config.sh eth0 --clear
-    ```
-
 ### 2. Codificador VVC: `VVenC`
 
-O `VVenC` (Versatile Video Encoder) é uma implementação de referência de código aberto do padrão de codificação de vídeo Versatile Video Coding (VVC/H.266). Ele é utilizado para codificar arquivos de vídeo no formato VVC.
+O `VVenC` é o codificador de referência para o padrão VVC.
 
 **Instalação:**
-
-Recomenda-se compilar o `VVenC` a partir do código-fonte para obter a versão mais recente e otimizada. As instruções básicas são:
-
 ```bash
 git clone https://github.com/fraunhoferhhi/vvenc.git
 cd vvenc
@@ -128,34 +102,9 @@ sudo make install
 ```
 
 **Uso do Script `vvenc_config.sh`:**
-
-Este script demonstra como usar o `VVenC` para codificar um arquivo YUV de entrada para o formato VVC, com opções para bitrate, resolução e preset de codificação.
-
 ```bash
 ./vvenc_config.sh <input_yuv_file> <output_vvc_file> [bitrate_kbps] [resolution] [preset]
 ```
-
-*   `<input_yuv_file>`: Caminho para o arquivo de vídeo YUV de entrada.
-*   `<output_vvc_file>`: Caminho para o arquivo de vídeo VVC de saída.
-*   `[bitrate_kbps]`: Bitrate desejado em kbps (opcional, padrão: 2000).
-*   `[resolution]`: Resolução do vídeo (ex: `1920x1080`) (opcional, padrão: `1920x1080`).
-*   `[preset]`: Preset de codificação (ex: `fast`, `medium`, `slow`) (opcional, padrão: `medium`).
-
-**Exemplos:**
-
-*   Codificar `input.yuv` para `output.vvc` com bitrate de 2 Mbps e preset `fast`:
-    ```bash
-    ./vvenc_config.sh input.yuv output.vvc 2000 1920x1080 fast
-    ```
-*   Codificar `video.yuv` para `video.vvc` com resolução 1280x720 e preset `medium`:
-    ```bash
-    ./vvenc_config.sh video.yuv video.vvc 1500 1280x720 medium
-    ```
-
-**Observações:**
-
-*   O `VVenC` possui diversas opções de parametrização avançadas. Consulte a documentação oficial para otimizações específicas.
-*   A qualidade e o tamanho do arquivo de saída dependem diretamente do bitrate, resolução e preset escolhidos.
 
 ## Referência
 

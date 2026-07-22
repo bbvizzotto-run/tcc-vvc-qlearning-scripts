@@ -34,11 +34,11 @@ O agente de IA opera em um modelo tabular, tomando decisões de ajuste de bitrat
 
 Para avaliar a eficácia da proposta, são utilizadas as seguintes métricas:
 
-*   **PSNR (Peak Signal-to-Noise Ratio):** Mede a fidelidade visual do vídeo reconstruído em relação ao original.
+*   **PSNR (Peak Signal-to-Noise Ratio):** Mede a fidelidade visual do vídeo reconstruído em relação ao original, calculando o PSNR médio do componente de luminância (Y) quadro a quadro entre os arquivos YUV original e codificado.
 *   **Taxa de Rebuffering:** Porcentagem de tempo em que a reprodução foi interrompida devido ao esvaziamento do buffer.
 *   **Estabilidade do Buffer:** Medida pelo desvio padrão da ocupação do buffer ao longo do tempo.
 
-O script `qoe_metrics.py` fornece implementações básicas para o cálculo dessas métricas.
+O script `qoe_metrics.py` fornece implementações para o cálculo dessas métricas, incluindo uma função robusta para PSNR.
 
 ### Cenários Experimentais
 

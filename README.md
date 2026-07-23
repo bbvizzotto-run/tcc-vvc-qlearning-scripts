@@ -61,6 +61,7 @@ A arquitetura foi projetada para ser avaliada em diversos cenários de rede, sim
 *   `qoe_metrics.py`: Script para cálculo de métricas de QoE.
 *   `tc_netem_config.sh`: Script para configurar o simulador de rede `tc/netem`.
 *   `vvenc_config.sh`: Script para exemplificar o uso do codificador `VVenC`.
+*   `results/`: Pasta contendo os resultados preliminares e dados experimentais.
 *   `README.md`: Este arquivo, descrevendo o projeto.
 
 ## Integração e Uso do Agente Q-Learning

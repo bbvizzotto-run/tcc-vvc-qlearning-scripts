@@ -62,6 +62,8 @@ A arquitetura foi projetada para ser avaliada em diversos cenários de rede, sim
 *   `tc_netem_config.sh`: Script para configurar o simulador de rede `tc/netem`.
 *   `vvenc_config.sh`: Script para exemplificar o uso do codificador `VVenC`.
 *   `results/`: Pasta contendo os resultados preliminares e dados experimentais.
+*   `DOCS.md`: Documentação técnica detalhada sobre o dataset e versões das ferramentas.
+*   `LICENSE`: Licença de uso do projeto (MIT).
 *   `README.md`: Este arquivo, descrevendo o projeto.
 
 ## Integração e Uso do Agente Q-Learning

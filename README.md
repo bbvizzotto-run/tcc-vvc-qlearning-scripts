@@ -24,9 +24,9 @@ O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 impl
 | Validação independente de intensidade de rajadas | Implementado |
 | Manifesto e simulação com tamanhos reais de segmentos | Implementado |
 | Pipeline de geração e medição de segmentos VVC reais | Implementado |
-| Importador de MPD e segmentos `.m4s` DVB-DASH | Implementado |
+| Importador de MPD, segmentos e byte ranges DVB-DASH | Implementado |
 | Proveniência, licença e configuração de protocolo DVB | Implementado |
-| Pacote DVB-DASH baixado e manifesto medido | Pendente de seleção/download |
+| Dataset DVB-DASH UHD1 HFR e manifesto medido | Implementado |
 | Dataset VVC real e resultados completos | Pendente de execução com as fontes YUV |
 | Rede `tc/netem` | Pendente |
 
@@ -181,20 +181,23 @@ python import_dvb_dash.py \
   --license-name "LICENÇA INFORMADA PARA O PACOTE" \
   --license-url "URL DA LICENÇA" \
   --protocol-template protocol_config.json \
-  --protocol-config dvb_protocol_config.local.json
+  --protocol-config dvb_protocol_config.local.json \
+  --bandwidth-scale 10
 ```
 
 O importador:
 
-- lê `SegmentTemplate`, `SegmentTimeline` ou `SegmentList` do MPD;
+- lê `SegmentTemplate`, `SegmentTimeline`, `SegmentList` ou `SegmentBase`/`sidx` do MPD;
 - ignora o segmento de inicialização e mede cada segmento de mídia completo;
-- registra bytes, duração, caminho e SHA-256 de cada `.m4s`;
+- registra bytes, duração, caminho e SHA-256 de cada segmento ou byte range;
 - preserva os valores `bandwidth` declarados pelo MPD como a escada do agente;
 - deixa PSNR-Y vazio, pois o pacote não contém necessariamente o master YUV exato;
 - grava um `*.provenance.json` com MPD, ZIP, licença, atribuição e seleção;
 - gera, opcionalmente, uma cópia do protocolo com a escada descoberta.
 
 Se o pacote contiver mais representações do que as desejadas, repita `--representation ID`. Use `--segments N` para um ensaio curto. Uma única representação valida a importação, mas são necessárias pelo menos duas para avaliar adaptação de bitrate. O número importado de segmentos também deve ser suficiente para os traces usados no protocolo.
+
+O pacote UHD1 HFR selecionado contém dois MP4 com índices `sidx`, 63 segmentos em 60 s e representações declaradas de 10.026 e 58.015 kbps. O manifesto versionado registra os byte ranges transferíveis dentro de cada MP4; os arquivos de vídeo e o ZIP não são incluídos no Git. Como os traces originais têm máximo de 5.200 kbps, `dvb_uhd1_hfr_protocol_config.json` aplica `bandwidth_scale: 10` a cada trace. A escala preserva o formato temporal dos traces e evita um cenário degenerado em que nem a representação inferior seria sustentável.
 
 Depois da importação, execute o protocolo gerado:
 
@@ -203,6 +206,8 @@ python run_protocol.py \
   --config dvb_protocol_config.local.json \
   --output-dir results/protocol_dvb
 ```
+
+A execução congelada do pacote UHD1 HFR está em `results/dvb_uhd1_hfr/`. O resultado inicial mostra um compromisso: o Q-Learning escolhe bitrate maior, mas também produz mais rebuffering que o baseline. Esse achado é preservado como baseline da política anterior e orienta a próxima etapa de recalibração da recompensa.
 
 ## Objetivos
 
@@ -286,8 +291,9 @@ Os valores padrão são `wq=1`, `wr=10`, `ws=0.25`, `wb=1` e buffer-alvo de 8 se
 *   `vvc_segment_pipeline.py`: Codificação, decodificação, medição e proveniência VVC.
 *   `generate_vvc_segments.py`: Interface de linha de comando da Etapa 5.2.
 *   `vvc_pipeline_config.example.json`: Configuração reproduzível de exemplo.
-*   `dvb_dash_importer.py`: Leitura do MPD, medição dos `.m4s` e proveniência DVB.
+*   `dvb_dash_importer.py`: Leitura do MPD, medição de segmentos/byte ranges e proveniência DVB.
 *   `import_dvb_dash.py`: Interface de linha de comando da Etapa 5.2b.
+*   `dvb_uhd1_hfr_protocol_config.json`: Protocolo de duas representações com traces escalados.
 *   `streaming_env.py`: Ambiente de streaming segmentado e dinâmica do buffer.
 *   `controllers.py`: Controladores usados como baseline experimental.
 *   `experiment.py`: Orquestração, métricas agregadas e persistência dos resultados.

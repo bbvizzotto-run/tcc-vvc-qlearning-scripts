@@ -61,6 +61,45 @@ class ExperimentalProtocolTest(unittest.TestCase):
 
         self.assertEqual(definition.segment_manifest_path, manifest.resolve())
 
+    def test_loads_and_applies_per_trace_bandwidth_scale(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            trace = root / "trace.csv"
+            config = root / "protocol.json"
+            trace.write_text(
+                "segment,bandwidth_kbps\n0,1000\n1,1000\n",
+                encoding="utf-8",
+            )
+            config.write_text(
+                json.dumps(
+                    {
+                        "protocol_version": 1,
+                        "seeds": [1, 2],
+                        "training_traces": [
+                            {"path": "trace.csv", "bandwidth_scale": 10}
+                        ],
+                        "evaluation_traces": [
+                            {"path": "trace.csv", "bandwidth_scale": 10}
+                        ],
+                        "experiment_config": {"bitrates_kbps": [5000]},
+                        "training_config": {
+                            "episodes": 1,
+                            "buffer_boundaries_s": [2],
+                        },
+                        "reward_config": {},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            definition = load_protocol_definition(config)
+            result = execute_protocol(definition)
+
+        self.assertEqual(definition.training_trace_scales, (10.0,))
+        self.assertEqual(definition.evaluation_trace_scales, (10.0,))
+        self.assertTrue(
+            all(float(row["startup_delay_s"]) == 2.0 for row in result.raw_runs)
+        )
+
     def test_protocol_is_reproducible_and_persists_outputs(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

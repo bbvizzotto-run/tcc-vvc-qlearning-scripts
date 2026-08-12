@@ -94,7 +94,7 @@ O contrato detalhado está em `segment_manifests/README.md`. `example_segments.c
 
 Cada comando fixa explicitamente resolução, taxa de quadros racional, formato de entrada, profundidade interna, número e deslocamento de quadros, preset, QPA, threads, perfil de multithreading e tipo de refresh. O padrão `idr_no_radl`, disponível desde o VVenC 1.13, inicia períodos com IDR sem imagens líderes e evita dependência externa ao segmento. Como cada arquivo `.266` é codificado isoladamente, o payload registrado é independentemente decodificável.
 
-Essa escolha inclui em cada payload o custo de acesso aleatório, parameter sets e demais cabeçalhos do bitstream bruto. Ela representa um conjunto controlado de objetos VVC independentes, não um empacotamento DASH/CMAF. Uma avaliação posterior com `.m4s` deverá medir o arquivo de contêiner completo e declarar separadamente seu overhead.
+Essa escolha inclui em cada payload o custo de acesso aleatório, parameter sets e demais cabeçalhos do bitstream bruto. Ela representa um conjunto controlado de objetos VVC independentes, não um empacotamento DASH/CMAF. A vertente DVB descrita adiante mede separadamente o payload ISO-BMFF transferível.
 
 Quando `compute_psnr_y` está ativo, o VVdeC reconstrói cada bitstream. O cálculo de PSNR-Y compara essa reconstrução com os quadros correspondentes na fonte completa, usando `start_frame + segment × frames_per_segment`. Quadros idênticos recebem 100 dB para manter a convenção histórica do projeto. As reconstruções podem ser removidas depois da medição; os bitstreams, logs, hashes e comandos permanecem rastreáveis.
 
@@ -109,7 +109,7 @@ O exemplo BQTerrace prevê cinco segmentos de 2 s. Isso é suficiente para valid
 
 ## Importação DVB-DASH — Etapa 5.2b
 
-A vertente DVB complementa o pipeline controlado. Em vez de recodificar um YUV, `import_dvb_dash.py` recebe um MPD estático de um pacote local e produz o manifesto usado pelo mesmo ambiente. Isso permite avaliar o agente sobre objetos de entrega VVC efetivamente empacotados em ISO-BMFF/DASH, incluindo o overhead de cada `.m4s`.
+A vertente DVB complementa o pipeline controlado. Em vez de recodificar um YUV, `import_dvb_dash.py` recebe um MPD estático de um pacote local e produz o manifesto usado pelo mesmo ambiente. Isso permite avaliar o agente sobre objetos de entrega VVC efetivamente empacotados em ISO-BMFF/DASH, sejam arquivos `.m4s` ou byte ranges de um MP4.
 
 O parser usa a biblioteca padrão do Python e cobre:
 
@@ -119,6 +119,7 @@ O parser usa a biblioteca padrão do Python e cobre:
 - especificadores numéricos, como `$Number%05d$`;
 - `SegmentTimeline`, incluindo repetições positivas e `r=-1` com limite conhecido;
 - `SegmentList` com duração fixa ou timeline;
+- `SegmentBase` com caixa `sidx` e referências por byte range;
 - seleção explícita de representações e limite opcional de segmentos.
 
 MPDs dinâmicos, URLs remotas e múltiplos períodos de vídeo são rejeitados nesta versão para evitar uma composição temporal implícita. Todos os arquivos devem ser extraídos antes da medição. O importador também verifica codec VVC quando o atributo `codecs` está declarado.
@@ -126,6 +127,16 @@ MPDs dinâmicos, URLs remotas e múltiplos períodos de vídeo são rejeitados n
 Para cada segmento de mídia, são medidos tamanho e SHA-256. O segmento de inicialização é excluído porque o modelo atual toma uma decisão por segmento de mídia e não modela downloads de inicialização. A proveniência contém os hashes do MPD, do ZIP original quando fornecido, do importador e do manifesto, bem como os metadados das representações e os termos informados na linha de comando.
 
 O atributo `bandwidth` é convertido de bits/s para kbps decimais e passa a identificar a ação no simulador. O agente e o baseline já aceitam qualquer quantidade de níveis, mas uma escada adaptativa exige pelo menos duas representações. O protocolo opcional gerado pelo importador copia o JSON-base e substitui `experiment_config.bitrates_kbps`, `segment_duration_s` e `segment_manifest`.
+
+### Dataset DVB-DASH UHD1 HFR
+
+O pacote oficial `vvc_uhd1_hfr.zip` tem SHA-256 `94325083843293ff06dc0403f3be1df881a70878a447be1ef1106817534f9695` e contém duas representações VVC de 3840×2160, SDR e 100 fps. O MPD declara 10.025.941 e 58.015.227 bit/s. Cada representação é um único MP4 com `SegmentBase`; os índices `sidx` descrevem 63 segmentos alinhados, totalizando exatamente 60 s.
+
+Os segmentos variam entre 0,65 e 0,96 s. A representação inferior totaliza 75.251.762 bytes de mídia e taxa efetiva de 10.033,57 kbps; a superior totaliza 435.171.403 bytes e 58.022,85 kbps. Cabeçalhos anteriores ao primeiro byte range e áudio não entram no manifesto.
+
+O conteúdo foi gravado por Martin Fähnrich (Panasonic), detentor dos direitos e licenciante sob Creative Commons Attribution 4.0. O texto, a URL da licença e os hashes estão preservados no arquivo de proveniência. O `psnr_y_db` fica vazio porque o master YUV exato não acompanha o pacote.
+
+Os traces originais variam de 300 a 5.200 kbps, enquanto a menor representação exige cerca de 10 Mbps. O protocolo DVB aplica fator 10 às amostras de banda em memória, sem modificar os CSV. Essa escolha preserva as variações relativas e produz uma faixa de 3–52 Mbps, na qual a representação inferior é sustentável em parte do tempo e a superior apenas nos melhores intervalos. A escala é parte explícita do protocolo e dos metadados salvos.
 
 PSNR-Y não é inferido. Sem o master YUV exato usado na produção do pacote, não existe referência válida para essa medição. Assim, a vertente DVB é usada para realismo de entrega e comportamento ABR; a vertente VVenC permanece responsável por controle de codificação e comparação objetiva com a fonte.
 

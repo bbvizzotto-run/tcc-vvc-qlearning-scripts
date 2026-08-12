@@ -12,7 +12,7 @@ from dvb_dash_importer import DVB_VVC_SOURCE_URL, import_dvb_dash
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Lê um MPD DVB-DASH local, mede os segmentos .m4s e gera o "
+            "Lê um MPD DVB-DASH local, mede segmentos de mídia ou byte ranges e gera o "
             "manifesto aceito pelo simulador"
         )
     )
@@ -55,6 +55,15 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="destino do protocolo adaptado; requer --protocol-template",
     )
+    parser.add_argument(
+        "--bandwidth-scale",
+        type=float,
+        default=1.0,
+        help=(
+            "fator aplicado aos traces no protocolo gerado; use 10 para "
+            "preservar o perfil relativo dos traces com uma escada em dezenas de Mbps"
+        ),
+    )
     parser.add_argument("--overwrite", action="store_true")
     return parser
 
@@ -76,6 +85,7 @@ def main() -> int:
         provenance_path=args.provenance,
         protocol_template_path=args.protocol_template,
         protocol_config_path=args.protocol_config,
+        bandwidth_scale=args.bandwidth_scale,
         overwrite=args.overwrite,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))

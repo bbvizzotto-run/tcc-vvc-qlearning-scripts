@@ -89,7 +89,7 @@ Arquivos existentes não são substituídos por padrão. `--resume` reaproveita 
 
 ## Importação DVB-DASH — Etapa 5.2b
 
-`import_dvb_dash.py` converte um pacote DASH estático já extraído para este mesmo contrato. São aceitos `SegmentTemplate` com duração fixa ou `SegmentTimeline`, além de `SegmentList`. O importador seleciona somente adaptações de vídeo, resolve os caminhos locais, mede o arquivo de mídia completo e valida se todas as representações possuem a mesma linha temporal.
+`import_dvb_dash.py` converte um pacote DASH estático já extraído para este mesmo contrato. São aceitos `SegmentTemplate` com duração fixa ou `SegmentTimeline`, `SegmentList` e `SegmentBase` com índice `sidx`. O importador seleciona somente adaptações de vídeo, resolve os caminhos locais, mede o segmento de mídia completo e valida se todas as representações possuem a mesma linha temporal.
 
 O segmento de inicialização não entra em `size_bytes`, pois ele não é requisitado novamente a cada decisão do simulador. Esse custo deve ser modelado separadamente se o experimento passar a estudar inicialização ou troca entre conjuntos de inicialização incompatíveis.
 
@@ -117,4 +117,10 @@ python import_dvb_dash.py \
 
 O valor `bitrate_kbps` é o atributo `Representation@bandwidth` do MPD convertido de bits/s para kbps decimais e arredondado ao inteiro mais próximo. Se duas representações colidirem após a conversão, a importação é interrompida em vez de criar uma escada ambígua.
 
+Em `SegmentBase`, `source_file` inclui `#bytes=início-fim`, `size_bytes` corresponde somente ao byte range indicado pelo `sidx` e o SHA-256 é calculado sobre esse intervalo. O MP4 completo não é contado repetidamente. O parser rejeita índices hierárquicos, referências fora do arquivo ou duração total inconsistente com o período.
+
+Quando a escada do pacote opera em outra ordem de grandeza, `--bandwidth-scale FATOR` converte os traces no protocolo gerado. A transformação não altera os CSV originais e aparece em cada entrada de trace para garantir auditabilidade.
+
 Como o master YUV exato normalmente não acompanha o pacote, `psnr_y_db` permanece vazio. A reconstrução do `.m4s` não deve ser comparada consigo mesma nem com uma fonte aproximada. A proveniência registra explicitamente essa ausência.
+
+`dvb_vvc_uhd1_hfr.csv` é o primeiro manifesto real versionado. Ele foi medido a partir do arquivo oficial `vvc_uhd1_hfr.zip`, cuja identidade e licença constam em `dvb_vvc_uhd1_hfr.provenance.json`. O ZIP e os MP4 permanecem fora do repositório.

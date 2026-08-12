@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "created_at_utc": "2026-08-12T19:28:09.210720+00:00",
+  "importer": {
+    "name": "dvb_dash_importer.py",
+    "sha256": "d657b523812f5de22efae5c419bab4d17b5d530241d71690e0a33bcac06f2226"
+  },
+  "package": {
+    "name": "DVB-DASH VVC UHD1 HFR",
+    "source_url": "https://dvb.org/specifications/verification-validation/vvc-test-content/",
+    "archive": {
+      "file": "vvc_uhd1_hfr.zip",
+      "size_bytes": 510582456,
+      "sha256": "94325083843293ff06dc0403f3be1df881a70878a447be1ef1106817534f9695"
+    },
+    "mpd": {
+      "file": "vvc_uhd1_hfr.mpd",
+      "size_bytes": 2212,
+      "sha256": "d4e66d27e4fb1cdc2f037ed6341032a4231d79124861fa68d32b5d635c2908b8"
+    }
+  },
+  "rights": {
+    "attribution": "Original sequence recorded by Martin Fähnrich (Panasonic), copyright owner and licensor; licensed under CC BY 4.0. Source package: DVB-DASH VVC UHD1 HFR, DVB Project.",
+    "license_name": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "note": "Verificar os termos específicos do pacote na página da DVB."
+  },
+  "selection": {
+    "requested_representation_ids": [],
+    "max_segments": null,
+    "bandwidth_scale": 10.0,
+    "adaptive_ladder": true
+  },
+  "representations": [
+    {
+      "id": "1",
+      "bandwidth_bps": 10025941,
+      "bitrate_kbps": 10026,
+      "width": 3840,
+      "height": 2160,
+      "frame_rate": "100",
+      "codecs": "vvi1.1.L86.CQA",
+      "mime_type": "video/mp4",
+      "addressing_mode": "SegmentBase",
+      "segment_count": 63,
+      "total_media_bytes": 75251762,
+      "average_payload_bitrate_kbps": 10033.568266666667
+    },
+    {
+      "id": "2",
+      "bandwidth_bps": 58015227,
+      "bitrate_kbps": 58015,
+      "width": 3840,
+      "height": 2160,
+      "frame_rate": "100",
+      "codecs": "vvi1.1.L86.CQA",
+      "mime_type": "video/mp4",
+      "addressing_mode": "SegmentBase",
+      "segment_count": 63,
+      "total_media_bytes": 435171403,
+      "average_payload_bitrate_kbps": 58022.85373333333
+    }
+  ],
+  "quality": {
+    "psnr_y_db": null,
+    "reason": "o pacote não inclui o master YUV de referência exato; nenhum valor de PSNR foi inferido"
+  },
+  "manifest": {
+    "source": "dvb_vvc_uhd1_hfr.csv",
+    "manifest_sha256": "c529b3942939da3a71d94832fa71b572f5b31a843dd3481b739de57145b33fa7",
+    "sequence": "DVB_VVC_UHD1_HFR",
+    "segment_count": 63,
+    "bitrates_kbps": [
+      10026,
+      58015
+    ],
+    "size_unit": "bytes",
+    "file": "dvb_vvc_uhd1_hfr.csv",
+    "sha256": "c529b3942939da3a71d94832fa71b572f5b31a843dd3481b739de57145b33fa7"
+  },
+  "protocol_config": {
+    "file": "dvb_uhd1_hfr_protocol_config.json",
+    "sha256": "18c55839d4a69da4ce645a148aee94e215bac4340efcf6115fcf0a5f39de72b2"
+  }
+}

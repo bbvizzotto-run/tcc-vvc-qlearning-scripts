@@ -92,6 +92,8 @@ class ProtocolDefinition:
     reward_config: RewardConfig
     trace_augmentation: TraceAugmentationConfig | None = None
     segment_manifest_path: Path | None = None
+    training_trace_scales: tuple[float, ...] = ()
+    evaluation_trace_scales: tuple[float, ...] = ()
 
 
 @dataclass
@@ -149,11 +151,35 @@ def load_protocol_definition(path: str | Path) -> ProtocolDefinition:
 
     root = source_path.parent
 
-    def resolve_paths(items: Sequence[str]) -> tuple[Path, ...]:
-        paths = tuple((root / item).resolve() for item in items)
-        if not paths or any(not item.is_file() for item in paths):
+    def resolve_traces(
+        items: Sequence[str | Mapping[str, Any]],
+    ) -> tuple[tuple[Path, ...], tuple[float, ...]]:
+        paths: list[Path] = []
+        scales: list[float] = []
+        for item in items:
+            if isinstance(item, str):
+                trace_path = item
+                scale = 1.0
+            elif isinstance(item, Mapping):
+                trace_path = str(item["path"])
+                scale = float(item.get("bandwidth_scale", 1.0))
+            else:
+                raise ValueError("cada trace deve ser um caminho ou objeto")
+            if not math.isfinite(scale) or scale <= 0:
+                raise ValueError("bandwidth_scale deve ser positivo e finito")
+            paths.append((root / trace_path).resolve())
+            scales.append(scale)
+        paths_tuple = tuple(paths)
+        if not paths_tuple or any(not item.is_file() for item in paths_tuple):
             raise ValueError("um ou mais traces do protocolo não existem")
-        return paths
+        return paths_tuple, tuple(scales)
+
+    training_trace_paths, training_trace_scales = resolve_traces(
+        raw["training_traces"]
+    )
+    evaluation_trace_paths, evaluation_trace_scales = resolve_traces(
+        raw["evaluation_traces"]
+    )
 
     experiment_raw = dict(raw["experiment_config"])
     experiment_raw["bitrates_kbps"] = tuple(experiment_raw["bitrates_kbps"])
@@ -176,8 +202,8 @@ def load_protocol_definition(path: str | Path) -> ProtocolDefinition:
         protocol_version=int(raw["protocol_version"]),
         confidence_level=confidence_level,
         seeds=seeds,
-        training_trace_paths=resolve_paths(raw["training_traces"]),
-        evaluation_trace_paths=resolve_paths(raw["evaluation_traces"]),
+        training_trace_paths=training_trace_paths,
+        evaluation_trace_paths=evaluation_trace_paths,
         experiment_config=ExperimentConfig(**experiment_raw),
         training_config=TrainingConfig(**training_raw),
         reward_config=RewardConfig(**raw["reward_config"]),
@@ -187,6 +213,8 @@ def load_protocol_definition(path: str | Path) -> ProtocolDefinition:
             else None
         ),
         segment_manifest_path=segment_manifest_path,
+        training_trace_scales=training_trace_scales,
+        evaluation_trace_scales=evaluation_trace_scales,
     )
 
 
@@ -331,13 +359,23 @@ def _paired_differences(
 
 
 def execute_protocol(definition: ProtocolDefinition) -> ProtocolResult:
+    training_scales = definition.training_trace_scales or tuple(
+        1.0 for _ in definition.training_trace_paths
+    )
+    evaluation_scales = definition.evaluation_trace_scales or tuple(
+        1.0 for _ in definition.evaluation_trace_paths
+    )
+    if len(training_scales) != len(definition.training_trace_paths):
+        raise ValueError("training_trace_scales difere dos traces de treinamento")
+    if len(evaluation_scales) != len(definition.evaluation_trace_paths):
+        raise ValueError("evaluation_trace_scales difere dos traces de avaliação")
     training_traces = [
-        (path.stem, load_bandwidth_trace(path))
-        for path in definition.training_trace_paths
+        (path.stem, [value * scale for value in load_bandwidth_trace(path)])
+        for path, scale in zip(definition.training_trace_paths, training_scales)
     ]
     evaluation_traces = [
-        (path.stem, load_bandwidth_trace(path))
-        for path in definition.evaluation_trace_paths
+        (path.stem, [value * scale for value in load_bandwidth_trace(path)])
+        for path, scale in zip(definition.evaluation_trace_paths, evaluation_scales)
     ]
     segment_manifest = (
         load_segment_manifest(definition.segment_manifest_path)
@@ -485,10 +523,20 @@ def save_protocol_result(
         "better_when": dict(BETTER_WHEN),
         "seeds": list(definition.seeds),
         "training_traces": [
-            path.name for path in definition.training_trace_paths
+            {"path": path.name, "bandwidth_scale": scale}
+            for path, scale in zip(
+                definition.training_trace_paths,
+                definition.training_trace_scales
+                or tuple(1.0 for _ in definition.training_trace_paths),
+            )
         ],
         "evaluation_traces": [
-            path.name for path in definition.evaluation_trace_paths
+            {"path": path.name, "bandwidth_scale": scale}
+            for path, scale in zip(
+                definition.evaluation_trace_paths,
+                definition.evaluation_trace_scales
+                or tuple(1.0 for _ in definition.evaluation_trace_paths),
+            )
         ],
         "experiment_config": asdict(definition.experiment_config),
         "training_config": asdict(definition.training_config),

@@ -18,6 +18,8 @@ O desenvolvimento está organizado em etapas verificáveis. A **Etapa 1** implem
 | Treinamento e avaliação do Q-Learning | Implementado |
 | Persistência da Q-table e metadados experimentais | Implementado |
 | Comparação automatizada com o baseline | Implementado |
+| Protocolo multi-semente com IC95% | Implementado |
+| Análise pareada por trace e geral | Implementado |
 | Segmentos VVC reais e rede `tc/netem` | Pendente |
 
 ### Instalação e testes
@@ -75,6 +77,27 @@ python compare_controllers.py \
 ```
 
 Cada execução produz dados por segmento em CSV e um arquivo `*.summary.json` com métricas agregadas e parâmetros.
+
+### Protocolo experimental multi-semente
+
+O protocolo versionado executa cinco sementes, três traces reservados para avaliação e os dois controladores:
+
+```bash
+python run_protocol.py \
+  --config protocol_config.json \
+  --output-dir results/protocol
+```
+
+São produzidos:
+
+- `raw_runs.csv`: métricas de cada combinação semente–trace–controlador;
+- `aggregate.csv`: médias, desvios padrão e IC95% por trace e gerais;
+- `paired_differences.csv`: diferenças Q-Learning–estático pareadas;
+- `training_summary.csv`: diagnóstico de cada treinamento;
+- `manifest.json`: configuração e método estatístico;
+- `models/`: Q-tables geradas para cada semente.
+
+O resultado geral é calculado entre sementes após obter a média dos traces dentro de cada semente. Assim, medições repetidas nos mesmos traces não aumentam artificialmente o tamanho amostral.
 
 ## Objetivos
 
@@ -145,6 +168,9 @@ Os valores padrão são `wq=1`, `wr=10`, `ws=0.25`, `wb=1` e buffer-alvo de 8 se
 *   `q_learning_pipeline.py`: Estado, recompensa, treinamento e avaliação do agente.
 *   `train_q_learning.py`: Interface de treinamento e persistência da Q-table.
 *   `compare_controllers.py`: Comparação automatizada com o baseline.
+*   `experimental_protocol.py`: Execuções repetidas, IC95% e diferenças pareadas.
+*   `run_protocol.py`: Interface do protocolo experimental completo.
+*   `protocol_config.json`: Traces, sementes e hiperparâmetros versionados.
 *   `streaming_env.py`: Ambiente de streaming segmentado e dinâmica do buffer.
 *   `controllers.py`: Controladores usados como baseline experimental.
 *   `experiment.py`: Orquestração, métricas agregadas e persistência dos resultados.
@@ -161,9 +187,9 @@ Os valores padrão são `wq=1`, `wr=10`, `ws=0.25`, `wb=1` e buffer-alvo de 8 se
 
 ## Separação entre treinamento e avaliação
 
-Os traces `stable.csv` e `fluctuating.csv` são usados no exemplo de treinamento. O trace `evaluation_challenging.csv` fica reservado para avaliação. Essa divisão evita avaliar a política somente nas mesmas sequências de rede usadas para atualizar a Q-table.
+Os traces `stable.csv` e `fluctuating.csv` são usados no treinamento. Os traces `evaluation_gradual.csv`, `evaluation_bursty.csv` e `evaluation_challenging.csv` ficam reservados para avaliação. Essa divisão evita avaliar a política somente nas mesmas sequências de rede usadas para atualizar a Q-table.
 
-Os resultados produzidos nesta etapa validam a integração do software, mas ainda não constituem uma avaliação científica completa. Essa avaliação exigirá múltiplos traces, diversas sementes, intervalos de confiança e representações VVC reais.
+O protocolo atual já utiliza múltiplos traces, sementes e intervalos de confiança. Ainda faltam mais repetições, traces independentes e representações VVC reais antes de uma conclusão científica sobre o controlador.
 
 ## Componentes Adicionais e Configuração (Opcional)
 

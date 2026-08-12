@@ -1,5 +1,7 @@
 # Validação da Integração — Etapa 2
 
+> Esta validação de uma única semente foi sucedida pelo protocolo multi-semente documentado em `results/protocol_results.md`. Ela permanece no repositório apenas para registrar a evolução do trabalho.
+
 Esta validação verifica se o treinamento, a persistência do modelo, a avaliação sem exploração e a comparação com o baseline funcionam de ponta a ponta. Ela utiliza somente o trace `evaluation_challenging.csv`, com semente 42, após treinamento nos traces `stable.csv` e `fluctuating.csv`.
 
 | Controlador | Bitrate médio (kbps) | Atraso inicial (s) | Rebuffering (s) | Taxa de rebuffering (%) | Desvio padrão do buffer (s) |

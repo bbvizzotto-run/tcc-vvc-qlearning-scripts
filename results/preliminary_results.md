@@ -1,23 +1,31 @@
-# Dados Ilustrativos — Ainda Não Reproduzíveis
+# Validação da Integração — Etapa 2
 
-Os valores abaixo foram preservados do estágio inicial do projeto, mas **não devem ser apresentados como resultados experimentais**: o repositório original não continha scripts, logs ou parâmetros suficientes para reproduzi-los. Eles funcionarão apenas como referência de formato até serem substituídos pela saída do protocolo experimental automatizado.
+Esta validação verifica se o treinamento, a persistência do modelo, a avaliação sem exploração e a comparação com o baseline funcionam de ponta a ponta. Ela utiliza somente o trace `evaluation_challenging.csv`, com semente 42, após treinamento nos traces `stable.csv` e `fluctuating.csv`.
 
-## Tabela 1: Valores de referência do estágio inicial
+| Controlador | Bitrate médio (kbps) | Atraso inicial (s) | Rebuffering (s) | Taxa de rebuffering (%) | Desvio padrão do buffer (s) |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| Estático | 1200,00 | 0,5013 | 19,1506 | 31,9176 | 3,3544 |
+| Q-Learning | 1700,00 | 1,5288 | 8,0880 | 13,4800 | 1,7831 |
 
-| Cenário de Rede | Método de Controle | PSNR Médio (dB) | Taxa de Rebuffering (%) | Estabilidade do Buffer (Desvio Padrão) |
-| :--- | :--- | :--- | :--- | :--- |
-| Estável | Estático | 38.5 | 0.5 | 2.1 |
-| Estável | Q-Learning | 39.2 | 0.1 | 1.2 |
-| Flutuação de Banda | Estático | 34.2 | 8.4 | 15.3 |
-| Flutuação de Banda | Q-Learning | 36.8 | 2.1 | 5.4 |
-| Perda de Pacotes (1%) | Estático | 31.5 | 12.5 | 18.7 |
-| Perda de Pacotes (1%) | Q-Learning | 34.1 | 4.2 | 8.9 |
-| Jitter Elevado | Estático | 33.8 | 10.2 | 16.5 |
-| Jitter Elevado | Q-Learning | 35.9 | 3.5 | 7.2 |
+## Interpretação restrita
 
-## Interpretação anteriormente proposta
+Nesta execução, o Q-Learning combinou bitrate médio mais alto com menos rebuffering, mas apresentou atraso inicial maior. O trace contém períodos com capacidade inferior ao menor bitrate disponível, portanto alguma interrupção é inevitável.
 
-A interpretação abaixo também foi preservada apenas como hipótese a ser testada:
-- **PSNR:** O agente Q-Learning conseguiu manter uma qualidade visual (PSNR) consistentemente superior em todos os cenários adversos, demonstrando sua capacidade de otimizar a escolha do bitrate mesmo sob instabilidade.
-- **Rebuffering:** A redução na taxa de rebuffering foi significativa, especialmente nos cenários de flutuação de banda e perda de pacotes, indicando que o agente aprendeu a manter uma reserva de segurança no buffer para evitar interrupções.
-- **Estabilidade do Buffer:** O desvio padrão da ocupação do buffer foi notavelmente menor com o Q-Learning, o que comprova que o controle dinâmico evita oscilações bruscas (overflow e underflow), resultando em um fluxo de dados mais suave.
+Esses números **não constituem uma conclusão científica** sobre superioridade do controlador: representam um trace, uma semente e parâmetros ainda não submetidos a análise de sensibilidade. A etapa experimental completa deverá utilizar múltiplos traces, sementes, repetições e intervalos de confiança.
+
+## Reprodução
+
+```bash
+python train_q_learning.py \
+  --trace bandwidth_traces/stable.csv \
+  --trace bandwidth_traces/fluctuating.csv \
+  --model models/q_learning.npz \
+  --history results/training/q_learning.csv \
+  --seed 42
+
+python compare_controllers.py \
+  --model models/q_learning.npz \
+  --trace bandwidth_traces/evaluation_challenging.csv \
+  --output results/comparisons/challenging.csv \
+  --seed 42
+```

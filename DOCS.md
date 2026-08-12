@@ -158,6 +158,34 @@ O candidato `wr10_wb2` foi selecionado. Seus pesos são `(wq, wr, ws, wb) = (1, 
 
 `results/dvb_reward_tuning/manifest.json` registra a grade, a regra, os traces, os pesos escolhidos e a proteção contra vazamento. `dvb_uhd1_hfr_selected_protocol_config.json` é a entrada congelada para a Etapa 5.3b. Nenhuma métrica dos três traces finais foi consultada para essa escolha.
 
+## Avaliação Final DVB — Etapa 5.3b
+
+A configuração `wr10_wb2` foi executada uma única vez nos três traces reservados, depois de versionada na `main`. O arquivo usado corresponde ao Git blob `8116a8f7875e8de151dc9f16c92998f9c3b28f6f` e ao SHA-256 `f269dc48fd06a4de396602363b1d915ca88d94b286bd4a9504e43bac7c9a49e1`. Não houve ajuste posterior dos pesos.
+
+### Resultado geral
+
+| Métrica | Estático | Q-Learning | Diferença QL − estático (IC95%) | Interpretação |
+| :--- | ---: | ---: | :--- | :--- |
+| Atraso inicial (s) | 2,453 | 2,453 | 0,000 [0,000; 0,000] | empate |
+| Rebuffering (s) | 2,816 | 2,816 | 0,000 [0,000; 0,000] | empate |
+| Taxa de rebuffering (%) | 9,885 | 9,885 | 0,000 [0,000; 0,000] | empate |
+| Bitrate selecionado (kbps) | 11.092 | 12.479 | +1.386 [1.024; 1.749] | maior no Q-Learning |
+| Bitrate útil (kbps) | 13.272 | 14.741 | +1.468 [1.068; 1.868] | maior no Q-Learning |
+| Buffer médio (s) | 3,884 | 3,909 | +0,024 [−0,017; 0,066] | sem diferença conclusiva |
+| Desvio-padrão do buffer (s) | 1,740 | 1,534 | −0,207 [−0,248; −0,166] | menor no Q-Learning |
+
+A unidade estatística continua sendo a semente: os três traces são promediados dentro de cada uma das cinco sementes antes do IC95%. A diferença de bitrate útil e a redução do desvio-padrão do buffer excluem zero. Rebuffering, taxa de rebuffering e atraso inicial são exatamente iguais entre as políticas.
+
+### Resultado por cenário e comparação com a política anterior
+
+Todo o ganho ocorreu em `evaluation_gradual`: +4.405 kbps de bitrate útil, IC95% [3.205; 5.605], e −0,620 s no desvio-padrão do buffer, IC95% [−0,743; −0,497]. Em `evaluation_bursty` e `evaluation_challenging`, o Q-Learning reproduziu as métricas do baseline. Portanto, o resultado geral não deve ser interpretado como ganho uniforme nos três cenários.
+
+Na política anterior, o Q-Learning apresentava 4,470 s de rebuffering e 15,688% de taxa de rebuffering. A política selecionada reduziu descritivamente esses valores para 2,816 s e 9,885%, iguais ao baseline, enquanto manteve bitrate útil acima dele. Essa comparação com a política anterior é descritiva; a inferência principal permanece a comparação pareada da avaliação final.
+
+O experimento ainda possui limitações: escada com apenas duas representações separadas por um fator de aproximadamente 5,8; traces de banda multiplicados por 10; cinco sementes; ausência de PSNR-Y; e um pacote DVB específico. Assim, a conclusão adequada é que a recalibração eliminou a degradação de rebuffering e obteve ganho secundário de bitrate útil e estabilidade nesse protocolo, não que o controlador seja universalmente superior.
+
+`results/dvb_uhd1_hfr_selected_final/evaluation_attestation.json` registra o commit-base, o comando único e os hashes da configuração, dos traces e dos resultados. Os modelos NPZ são derivados e permanecem fora do Git.
+
 ## Parâmetros de Codificação (VVenC)
 
 Para os experimentos, o VVenC é configurado com os seguintes parâmetros base:

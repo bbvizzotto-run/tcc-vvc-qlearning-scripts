@@ -4,9 +4,9 @@ Este documento detalha as especificações do ambiente experimental, incluindo o
 
 ## Dataset de Vídeos
 
-Para a avaliação do controlador adaptativo, foram utilizadas sequências de teste padronizadas do CTC (*Common Test Conditions*) do VVC.
+Para a futura avaliação com conteúdo VVC real, foram selecionadas sequências de teste padronizadas do CTC (*Common Test Conditions*) do VVC. Os experimentos reproduzíveis com essas sequências ainda serão incorporados ao repositório.
 
-### Sequências Utilizadas:
+### Sequências Planejadas:
 | Sequência | Resolução | Taxa de Quadros (fps) | Classe | Descrição |
 | :--- | :--- | :--- | :--- | :--- |
 | **Tango** | 3840x2160 | 60 | A1 | Conteúdo de alta dinâmica e detalhes finos. |
@@ -18,7 +18,7 @@ Para a avaliação do controlador adaptativo, foram utilizadas sequências de te
 
 ## Versões das Ferramentas
 
-A arquitetura experimental utiliza as seguintes versões de software:
+A arquitetura experimental prevê as seguintes versões de software, que deverão ser registradas novamente quando os experimentos reais forem executados:
 
 - **Codificador VVC (VVenC):** Versão v1.7.0 (Fraunhofer HHI).
 - **Simulador de Rede:** `tc/netem` integrado ao Kernel Linux 5.x ou superior.

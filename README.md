@@ -4,6 +4,35 @@
 
 Este repositório contém scripts e materiais relacionados ao trabalho de conclusão de curso que propõe uma arquitetura para a correção dinâmica da ocupação de buffer em aplicações de streaming que utilizam o padrão de codificação Versatile Video Coding (VVC). A solução é baseada em Aprendizado por Reforço, empregando o algoritmo Q-Learning para otimizar a estabilidade do buffer e a Qualidade de Experiência (QoE) em transmissões de vídeo sob condições de rede instáveis.
 
+## Status da Implementação
+
+O desenvolvimento está organizado em etapas verificáveis. A **Etapa 1** implementa um ambiente determinístico de streaming segmentado e a **Etapa 2** inicia o baseline por limiares estáticos. O agente Q-Learning existente ainda será integrado ao ambiente em uma etapa posterior.
+
+| Componente | Estado atual |
+| :--- | :--- |
+| Ambiente de segmentos, buffer, atraso inicial e rebuffering | Implementado |
+| Traces de banda estável e flutuante | Implementado |
+| Controlador por limiares estáticos | Implementado |
+| Logs CSV e resumo JSON | Implementado |
+| Testes automatizados do simulador e baseline | Implementado |
+| Treinamento e avaliação do Q-Learning | Pendente |
+| Segmentos VVC reais e rede `tc/netem` | Pendente |
+
+### Execução do baseline
+
+Requer Python 3.10 ou superior. Na raiz do repositório, execute:
+
+```bash
+python -m unittest discover -s tests -v
+python run_experiment.py \
+  --controller static \
+  --trace bandwidth_traces/fluctuating.csv \
+  --output results/runs/static_fluctuating_seed42.csv \
+  --seed 42
+```
+
+O CSV contém uma linha por segmento. O arquivo `*.summary.json` registra as métricas agregadas e todos os parâmetros usados na execução.
+
 ## Objetivos
 
 O objetivo geral deste projeto é desenvolver e avaliar metodologicamente uma arquitetura de controle adaptativo para streaming VVC, empregando o algoritmo Q-Learning para a gestão dinâmica da ocupação do buffer. Os objetivos específicos incluem:
@@ -16,7 +45,7 @@ O objetivo geral deste projeto é desenvolver e avaliar metodologicamente uma ar
 
 ## Metodologia
 
-A metodologia fundamenta-se na construção de uma arquitetura experimental composta por sete módulos integrados:
+A metodologia fundamenta-se na construção progressiva de uma arquitetura experimental planejada com sete módulos integrados:
 
 1.  **Fonte de Vídeo:** Em formato YUV.
 2.  **Codificador VVC (VVenC):** Utiliza a ferramenta VVenC para codificação de vídeo.
@@ -32,7 +61,7 @@ O agente de IA opera em um modelo tabular, tomando decisões de ajuste de bitrat
 
 ### Métricas de Avaliação de QoE
 
-Para avaliar a eficácia da proposta, são utilizadas as seguintes métricas:
+Para avaliar a eficácia da proposta, serão utilizadas as seguintes métricas:
 
 *   **PSNR (Peak Signal-to-Noise Ratio):** Mede a fidelidade visual do vídeo reconstruído em relação ao original, calculando o PSNR médio do componente de luminância (Y) quadro a quadro entre os arquivos YUV original e codificado.
 *   **Taxa de Rebuffering:** Porcentagem de tempo em que a reprodução foi interrompida devido ao esvaziamento do buffer.
@@ -58,6 +87,12 @@ A arquitetura foi projetada para ser avaliada em diversos cenários de rede, sim
 ## Estrutura do Repositório
 
 *   `q_learning_agent.py`: Implementação do agente Q-Learning em Python.
+*   `streaming_env.py`: Ambiente de streaming segmentado e dinâmica do buffer.
+*   `controllers.py`: Controladores usados como baseline experimental.
+*   `experiment.py`: Orquestração, métricas agregadas e persistência dos resultados.
+*   `run_experiment.py`: Interface de linha de comando dos experimentos.
+*   `bandwidth_traces/`: Traces de largura de banda versionados.
+*   `tests/`: Testes automatizados da implementação.
 *   `qoe_metrics.py`: Script para cálculo de métricas de QoE.
 *   `tc_netem_config.sh`: Script para configurar o simulador de rede `tc/netem`.
 *   `vvenc_config.sh`: Script para exemplificar o uso do codificador `VVenC`.

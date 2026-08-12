@@ -6,7 +6,7 @@ Este repositório contém scripts e materiais relacionados ao trabalho de conclu
 
 ## Status da Implementação
 
-O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico, a Etapa 4 melhora a generalização a rajadas e a Etapa 5.1 conecta tamanhos medidos ao simulador. A **Etapa 5.2** automatiza a codificação, a medição e a proveniência de segmentos VVC reais.
+O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico, a Etapa 4 melhora a generalização a rajadas e a Etapa 5.1 conecta tamanhos medidos ao simulador. A **Etapa 5.2** automatiza a codificação controlada com VVenC e a **Etapa 5.2b** importa pacotes DVB-DASH VVC reais.
 
 | Componente | Estado atual |
 | :--- | :--- |
@@ -24,6 +24,9 @@ O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 impl
 | Validação independente de intensidade de rajadas | Implementado |
 | Manifesto e simulação com tamanhos reais de segmentos | Implementado |
 | Pipeline de geração e medição de segmentos VVC reais | Implementado |
+| Importador de MPD e segmentos `.m4s` DVB-DASH | Implementado |
+| Proveniência, licença e configuração de protocolo DVB | Implementado |
+| Pacote DVB-DASH baixado e manifesto medido | Pendente de seleção/download |
 | Dataset VVC real e resultados completos | Pendente de execução com as fontes YUV |
 | Rede `tc/netem` | Pendente |
 
@@ -162,6 +165,45 @@ O pipeline exige VVenC 1.13 ou superior porque usa `idr_no_radl`, modo apropriad
 
 O pipeline verifica o tamanho da fonte YUV antes de codificar e **não repete conteúdo automaticamente**. Os traces de avaliação possuem 30 segmentos de 2 s; portanto, o protocolo completo requer 60 s de conteúdo após `start_frame`. O exemplo BQTerrace contém cinco segmentos apenas como ensaio de integração, devendo ser ajustado à fonte efetivamente disponível. Se uma execução longa for interrompida, `--resume` reutiliza apenas bitstreams cujo comando salvo no log coincide exatamente com a configuração atual. Consulte `segment_manifests/README.md` para o procedimento completo.
 
+### Importação de pacotes DVB-DASH VVC
+
+A Etapa 5.2b usa os pacotes de teste publicados na página [DVB VVC Test Content](https://dvb.org/specifications/verification-validation/vvc-test-content/). O download é feito manualmente porque a DVB exige o preenchimento de um formulário. Extraia o ZIP em `datasets/dvb/`, identifique o MPD e copie literalmente da página a atribuição e a licença específicas daquele pacote.
+
+Exemplo para um pacote já extraído:
+
+```bash
+python import_dvb_dash.py \
+  --mpd datasets/dvb/vvc_uhd1_hfr/path/to/stream.mpd \
+  --archive datasets/dvb/vvc_uhd1_hfr.zip \
+  --output segment_manifests/dvb_uhd1_hfr.csv \
+  --package-name "DVB-DASH VVC UHD1 HFR" \
+  --attribution "ATRIBUIÇÃO EXATA INFORMADA PELA DVB" \
+  --license-name "LICENÇA INFORMADA PARA O PACOTE" \
+  --license-url "URL DA LICENÇA" \
+  --protocol-template protocol_config.json \
+  --protocol-config dvb_protocol_config.local.json
+```
+
+O importador:
+
+- lê `SegmentTemplate`, `SegmentTimeline` ou `SegmentList` do MPD;
+- ignora o segmento de inicialização e mede cada segmento de mídia completo;
+- registra bytes, duração, caminho e SHA-256 de cada `.m4s`;
+- preserva os valores `bandwidth` declarados pelo MPD como a escada do agente;
+- deixa PSNR-Y vazio, pois o pacote não contém necessariamente o master YUV exato;
+- grava um `*.provenance.json` com MPD, ZIP, licença, atribuição e seleção;
+- gera, opcionalmente, uma cópia do protocolo com a escada descoberta.
+
+Se o pacote contiver mais representações do que as desejadas, repita `--representation ID`. Use `--segments N` para um ensaio curto. Uma única representação valida a importação, mas são necessárias pelo menos duas para avaliar adaptação de bitrate. O número importado de segmentos também deve ser suficiente para os traces usados no protocolo.
+
+Depois da importação, execute o protocolo gerado:
+
+```bash
+python run_protocol.py \
+  --config dvb_protocol_config.local.json \
+  --output-dir results/protocol_dvb
+```
+
 ## Objetivos
 
 O objetivo geral deste projeto é desenvolver e avaliar metodologicamente uma arquitetura de controle adaptativo para streaming VVC, empregando o algoritmo Q-Learning para a gestão dinâmica da ocupação do buffer. Os objetivos específicos incluem:
@@ -176,8 +218,8 @@ O objetivo geral deste projeto é desenvolver e avaliar metodologicamente uma ar
 
 A metodologia fundamenta-se na construção progressiva de uma arquitetura experimental planejada com sete módulos integrados:
 
-1.  **Fonte de Vídeo:** Em formato YUV.
-2.  **Codificador VVC (VVenC):** Utiliza a ferramenta VVenC para codificação de vídeo.
+1.  **Fonte de Vídeo:** YUV controlado ou pacote DVB-DASH VVC medido.
+2.  **Codificador VVC (VVenC):** Utilizado na vertente controlada do experimento.
 3.  **Controlador Adaptativo de Taxa:** Baseado em Q-Learning, ajusta o bitrate da transmissão em tempo real.
 4.  **Simulador de Rede:** Emprega o utilitário `tc/netem` do Linux para simular flutuações de rede.
 5.  **Monitor de Buffer:** Monitora a ocupação do buffer no cliente.
@@ -244,6 +286,8 @@ Os valores padrão são `wq=1`, `wr=10`, `ws=0.25`, `wb=1` e buffer-alvo de 8 se
 *   `vvc_segment_pipeline.py`: Codificação, decodificação, medição e proveniência VVC.
 *   `generate_vvc_segments.py`: Interface de linha de comando da Etapa 5.2.
 *   `vvc_pipeline_config.example.json`: Configuração reproduzível de exemplo.
+*   `dvb_dash_importer.py`: Leitura do MPD, medição dos `.m4s` e proveniência DVB.
+*   `import_dvb_dash.py`: Interface de linha de comando da Etapa 5.2b.
 *   `streaming_env.py`: Ambiente de streaming segmentado e dinâmica do buffer.
 *   `controllers.py`: Controladores usados como baseline experimental.
 *   `experiment.py`: Orquestração, métricas agregadas e persistência dos resultados.

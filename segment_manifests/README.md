@@ -86,3 +86,35 @@ Depois de copiar o JSON e apontar `input_yuv` para a fonte real, remova `--dry-r
 5. grava este manifesto e um `*.provenance.json` auditável.
 
 Arquivos existentes não são substituídos por padrão. `--resume` reaproveita uma codificação parcial somente quando a primeira linha do log contém exatamente o comando esperado; a reconstrução e a medição são refeitas. `--overwrite` deve ser usado somente para repetir conscientemente toda a configuração. O pipeline não concatena nem repete fontes curtas. Para os traces de avaliação existentes, são necessários 30 segmentos, isto é, 60 s quando cada segmento dura 2 s.
+
+## Importação DVB-DASH — Etapa 5.2b
+
+`import_dvb_dash.py` converte um pacote DASH estático já extraído para este mesmo contrato. São aceitos `SegmentTemplate` com duração fixa ou `SegmentTimeline`, além de `SegmentList`. O importador seleciona somente adaptações de vídeo, resolve os caminhos locais, mede o arquivo de mídia completo e valida se todas as representações possuem a mesma linha temporal.
+
+O segmento de inicialização não entra em `size_bytes`, pois ele não é requisitado novamente a cada decisão do simulador. Esse custo deve ser modelado separadamente se o experimento passar a estudar inicialização ou troca entre conjuntos de inicialização incompatíveis.
+
+Procedimento recomendado:
+
+1. baixar manualmente o ZIP na página DVB VVC Test Content;
+2. manter o ZIP original para cálculo de hash e extrair o conteúdo em `datasets/dvb/`;
+3. identificar o MPD e os IDs das representações de vídeo;
+4. copiar a atribuição e a licença específicas exibidas para o pacote;
+5. executar o importador e revisar o CSV e o `*.provenance.json`;
+6. usar a configuração de protocolo gerada para treinar e avaliar os dois controladores na mesma escada.
+
+```bash
+python import_dvb_dash.py \
+  --mpd datasets/dvb/PACOTE/stream.mpd \
+  --archive datasets/dvb/PACOTE.zip \
+  --output segment_manifests/PACOTE.csv \
+  --package-name "NOME PUBLICADO PELA DVB" \
+  --attribution "ATRIBUIÇÃO PUBLICADA PELA DVB" \
+  --license-name "LICENÇA DO PACOTE" \
+  --license-url "URL DA LICENÇA" \
+  --protocol-template protocol_config.json \
+  --protocol-config dvb_protocol_config.local.json
+```
+
+O valor `bitrate_kbps` é o atributo `Representation@bandwidth` do MPD convertido de bits/s para kbps decimais e arredondado ao inteiro mais próximo. Se duas representações colidirem após a conversão, a importação é interrompida em vez de criar uma escada ambígua.
+
+Como o master YUV exato normalmente não acompanha o pacote, `psnr_y_db` permanece vazio. A reconstrução do `.m4s` não deve ser comparada consigo mesma nem com uma fonte aproximada. A proveniência registra explicitamente essa ausência.

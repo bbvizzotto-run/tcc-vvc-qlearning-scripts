@@ -186,6 +186,24 @@ O experimento ainda possui limitações: escada com apenas duas representações
 
 `results/dvb_uhd1_hfr_selected_final/evaluation_attestation.json` registra o commit-base, o comando único e os hashes da configuração, dos traces e dos resultados. Os modelos NPZ são derivados e permanecem fora do Git.
 
+## Baselines ABR Competitivos — Etapa 5.4a
+
+A comparação adiciona três políticas ao controlador estático e ao Q-Learning:
+
+- throughput seleciona o maior bitrate abaixo de 85% da média harmônica das últimas cinco medições;
+- BOLA-BASIC usa utilidade logarítmica, buffer mínimo de 10 s e alvo de 20 s;
+- RobustMPC enumera sequências em horizonte 5, prevê banda pela média harmônica e a corrige pelo pior erro relativo das últimas cinco previsões.
+
+Os parâmetros estão em `dvb_abr_comparison_config.json` e foram congelados no commit local `d757a208e730e52e232c3480d2365f4fb5df53e4`, antes da primeira execução. O snapshot idêntico foi publicado no commit `cbf067b1efc3edbe894dd703681f5965fb371270`; o blob da configuração é `394a1f48b61e153b4c45c555c219ea406daecf11` em ambos. A implementação segue o núcleo do [BOLA](https://arxiv.org/abs/1601.06748), a formulação de [RobustMPC](https://doi.org/10.1145/2785956.2787486) e as implementações públicas de referência indicadas no manifesto. Trata-se de adaptação ao ambiente e à recompensa deste projeto, não reprodução binária daqueles sistemas.
+
+Throughput e RobustMPC observam somente downloads concluídos. O tamanho dos segmentos futuros vem do manifesto DVB público, mas a largura de banda do segmento corrente não é acessada antes da decisão. Testes cobrem a escolha conservadora inicial, a média harmônica, o fator de segurança, a transição do BOLA, a correção por erro do MPC e a reprodução integral do protocolo.
+
+Na média geral, o Q-Learning apresenta 14.741 kbps de bitrate útil, contra 14.388 no BOLA. A diferença de +353 kbps tem IC95% [−47; 753] e não é conclusiva. RobustMPC alcança 21.147 kbps, mas seu atraso inicial sobe para 10,995 s, contra 2,453 s no Q-Learning. Todos apresentam os mesmos 2,816 s de rebuffering após o início.
+
+A recompensa congelada não inclui atraso inicial. Ela otimiza qualidade, rebuffering após o início, trocas e buffer baixo; `startup_delay_s` permanece uma métrica externa. Por isso, o valor comparativo chama-se `mean_objective_reward`. O RobustMPC explora legitimamente esse desalinhamento, oferecendo mais qualidade com startup muito pior. Nenhum peso ou parâmetro foi alterado após observar o resultado.
+
+A conclusão é restrita: o Q-Learning supera o baseline estático em bitrate útil e estabilidade, mas não demonstra superioridade frente ao BOLA, e seu compromisso com RobustMPC depende de uma métrica ausente do objetivo. `results/dvb_abr_comparison/comparison_results.md` contém a análise completa; CSV, manifesto e atestação preservam as 75 avaliações, IC95% e hashes.
+
 ## Parâmetros de Codificação (VVenC)
 
 Para os experimentos, o VVenC é configurado com os seguintes parâmetros base:

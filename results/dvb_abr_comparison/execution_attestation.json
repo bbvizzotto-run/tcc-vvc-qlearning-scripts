@@ -1,0 +1,35 @@
+{
+  "stage": "5.4a",
+  "study_status": "post_hoc extension after stage 5.3b",
+  "parameter_policy": "frozen before first execution; no evaluation tuning",
+  "local_parameter_freeze_commit": "d757a208e730e52e232c3480d2365f4fb5df53e4",
+  "published_parameter_snapshot_commit": "cbf067b1efc3edbe894dd703681f5965fb371270",
+  "local_final_execution_source_commit": "7a4c101a1d91e6f93b06eb9cdad19967b7e2c369",
+  "published_final_execution_source_commit": "e11148d9feb6df3b701f419f8de0a33691e78d95",
+  "executed_at_utc": "2026-08-12T21:04:43Z",
+  "execution_count": 2,
+  "second_execution_reason": "regenerate identical decisions after renaming mean_qoe_reward to mean_objective_reward and documenting that startup is outside the frozen objective",
+  "post_first_execution_parameter_changes": false,
+  "command": "python run_abr_comparison.py --config dvb_abr_comparison_config.json --output-dir results/dvb_abr_comparison",
+  "comparison_config_git_blob": "394a1f48b61e153b4c45c555c219ea406daecf11",
+  "inputs_sha256": {
+    "dvb_abr_comparison_config.json": "9f4000651cbdc859451736a1553d2c5fc8e8d83956b71161dfc0efdfc9e35278",
+    "dvb_uhd1_hfr_selected_protocol_config.json": "f269dc48fd06a4de396602363b1d915ca88d94b286bd4a9504e43bac7c9a49e1",
+    "segment_manifests/dvb_vvc_uhd1_hfr.csv": "c529b3942939da3a71d94832fa71b572f5b31a843dd3481b739de57145b33fa7",
+    "bandwidth_traces/stable.csv": "45219bc737bd9cf4f7cfd837cf706b19d3c37f97c168705eeb2e16f169737bbf",
+    "bandwidth_traces/fluctuating.csv": "1e7bdcef6438c8a1025b9e79ab28daa8330e5e595dc7e2310b0a9896afeb1566",
+    "bandwidth_traces/evaluation_gradual.csv": "9acd398da2fe5b7fd2529f0516ffd634880c91af153bd35ba1ce95074d50d2a7",
+    "bandwidth_traces/evaluation_bursty.csv": "3d01d79a10f5c5c2210f610f60854af9a06adb3b8625fb7ceb08bd01e5fa65c8",
+    "bandwidth_traces/evaluation_challenging.csv": "9153ee7c8024d3b08c016ccec3a80f0b5d9d282750d08fb4c9bdbda2637dfd72"
+  },
+  "outputs_sha256": {
+    "aggregate.csv": "b966b9d4a501e13ab4792c8d350c9e738464d9c12de0e0e6f7c019d22be3ea70",
+    "paired_differences.csv": "a5ae909d67746b58fdd4b0d1f35b10030b541cae7c2287c48c9400678ce762a4",
+    "raw_runs.csv": "56e9398ae6784a6e4f7a7fc3206dc52af35a4bc2be9955dfd8c0275a9a16e018",
+    "training_summary.csv": "34859ec7878890308623fa414f062efaeec3073109df2fb98e34ea7209f5b7fd",
+    "manifest.json": "5ed34205f5fc3e80df2a01ffc00096bf1589037151fbc5245c55fdc9dbe8a0a3"
+  },
+  "training_runs": 5,
+  "evaluation_runs": 75,
+  "models_versioned": false
+}

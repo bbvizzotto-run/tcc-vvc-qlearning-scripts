@@ -6,7 +6,7 @@ Este repositório contém scripts e materiais relacionados ao trabalho de conclu
 
 ## Status da Implementação
 
-O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico, a Etapa 4 melhora a generalização a rajadas e a Etapa 5.1 conecta tamanhos medidos ao simulador. A **Etapa 5.2** automatiza a codificação controlada com VVenC, a **Etapa 5.2b** importa pacotes DVB-DASH VVC reais e a **Etapa 5.3** seleciona a recompensa em validação e a avalia uma única vez nos benchmarks congelados.
+O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico, a Etapa 4 melhora a generalização a rajadas e a Etapa 5.1 conecta tamanhos medidos ao simulador. A **Etapa 5.2** automatiza a codificação controlada com VVenC, a **Etapa 5.2b** importa pacotes DVB-DASH VVC reais, a **Etapa 5.3** seleciona a recompensa em validação e a avalia uma única vez nos benchmarks congelados e a **Etapa 5.4a** adiciona baselines competitivos de throughput, BOLA-BASIC e RobustMPC.
 
 | Componente | Estado atual |
 | :--- | :--- |
@@ -29,6 +29,7 @@ O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 impl
 | Dataset DVB-DASH UHD1 HFR e manifesto medido | Implementado |
 | Ajuste controlado da recompensa apenas em validação | Implementado |
 | Avaliação final da recompensa selecionada | Implementado (Etapa 5.3b) |
+| Comparação com throughput, BOLA-BASIC e RobustMPC | Implementado (Etapa 5.4a) |
 | Dataset VVC real e resultados completos | Pendente de execução com as fontes YUV |
 | Rede `tc/netem` | Pendente |
 
@@ -239,6 +240,20 @@ python run_protocol.py \
 Na média dos três traces finais, o Q-Learning e o baseline apresentaram os mesmos 2,816 s de rebuffering e taxa de 9,885%. O Q-Learning aumentou o bitrate útil de 13.272 para 14.741 kbps, diferença pareada de +1.468 kbps com IC95% [1.068; 1.868], e reduziu o desvio-padrão do buffer de 1,740 para 1,534 s, diferença de −0,207 s com IC95% [−0,248; −0,166]. O ganho ocorreu no trace gradual; nos traces `bursty` e `challenging`, as políticas produziram métricas idênticas.
 
 Esses resultados sustentam superioridade nas duas métricas secundárias citadas, mas não redução de rebuffering: nessa métrica crítica, a política apenas iguala o baseline. Os arquivos completos e a atestação da execução única estão em `results/dvb_uhd1_hfr_selected_final/`.
+
+### Comparação com baselines ABR competitivos
+
+A Etapa 5.4a reutiliza sem alteração a configuração final da Etapa 5.3b e acrescenta três comparadores: um controlador por throughput com média harmônica, BOLA-BASIC e RobustMPC. Os parâmetros foram versionados antes da primeira execução e não foram ajustados nos traces finais:
+
+```bash
+python run_abr_comparison.py \
+  --config dvb_abr_comparison_config.json \
+  --output-dir results/dvb_abr_comparison
+```
+
+O protocolo produz 75 avaliações pareadas. Q-Learning mantém o ganho sobre o baseline estático, mas fica estatisticamente empatado com BOLA-BASIC nas métricas principais. RobustMPC transfere mais bitrate e maximiza melhor a recompensa congelada, porém aumenta o atraso inicial médio de 2,453 para 10,995 s. Esse resultado expõe que a recompensa atual não inclui startup; por isso, os arquivos usam o nome `mean_objective_reward`, não QoE total.
+
+Essa comparação é uma extensão *post hoc*, não uma confirmação pré-registrada. Ela não sustenta superioridade geral do Q-Learning e orienta a próxima etapa: incluir startup no desenho da recompensa e ampliar conteúdos e traces. Resultados, IC95%, hashes e limitações estão em `results/dvb_abr_comparison/`.
 
 ## Objetivos
 

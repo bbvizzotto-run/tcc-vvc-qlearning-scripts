@@ -54,6 +54,21 @@ Para os resultados por trace, cada semente representa uma observação. Para o r
 
 O sinal da diferença pareada segue `Q-Learning - Estático`. Assim, valores negativos favorecem o Q-Learning para rebuffering, atraso inicial e variabilidade do buffer; valores positivos o favorecem para bitrate médio.
 
+## Protocolo de Generalização
+
+A Etapa 4 mantém constantes o ambiente, a recompensa, o número de episódios e as cinco sementes. O treinamento robusto difere somente pela randomização de domínio aplicada em memória aos traces `stable.csv` e `fluctuating.csv`:
+
+- escala global entre 0,85 e 1,15;
+- jitter multiplicativo de até 8%;
+- deslocamento circular do ponto inicial;
+- uma ou duas quedas por episódio, com duração entre um e três segmentos;
+- largura de banda durante a queda multiplicada por um fator entre 0,20 e 0,50;
+- piso de 300 kbps.
+
+A transformação é aplicada em 75% dos episódios e é reproduzível pela semente `training_seed * 1000003 + episode`. Dois traces exclusivos de validação foram usados para selecionar essa intensidade entre três candidatas. Os três traces de avaliação permanecem inalterados e nunca são fornecidos ao treinamento.
+
+O resultado principal deve ser lido como um compromisso: a política robusta reduz interrupções, mas usa bitrate menor que a política Q-Learning original. A tabela completa e as limitações metodológicas estão em `results/generalization_results.md`.
+
 ## Parâmetros de Codificação (VVenC)
 
 Para os experimentos, o VVenC foi configurado com os seguintes parâmetros base:

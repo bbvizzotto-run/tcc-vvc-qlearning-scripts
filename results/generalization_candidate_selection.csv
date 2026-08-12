@@ -1,0 +1,4 @@
+candidate,config,selected,validation_rebuffering_delta_s,validation_rebuffering_ci95_low,validation_rebuffering_ci95_high,validation_bitrate_delta_kbps,validation_bitrate_ci95_low,validation_bitrate_ci95_high,decision
+strong,robust_protocol_config_strong.json,False,-15.083904131639096,-15.083904131639096,-15.083904131639096,-175.0,-237.50282482505182,-112.49717517494818,rejected_quality_loss
+moderate,robust_protocol_config.json,True,-11.030283676159026,-17.323861660728404,-4.736705691589648,156.66666666666669,0.726721531082859,312.60661180225054,selected_safety_and_quality
+light,robust_protocol_config_light.json,False,-4.6080537798343055,-14.624664622507183,5.408557062838572,371.6666666666667,139.57118880368802,603.7621445296454,rejected_rebuffering_uncertainty

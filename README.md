@@ -6,7 +6,7 @@ Este repositório contém scripts e materiais relacionados ao trabalho de conclu
 
 ## Status da Implementação
 
-O desenvolvimento está organizado em etapas verificáveis. A **Etapa 1** implementa o ambiente determinístico e o baseline por limiares. A **Etapa 2** integra o treinamento, a persistência e a avaliação do controlador Q-Learning ao mesmo ambiente.
+O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico. A **Etapa 4** melhora a generalização a rajadas por randomização de domínio, sem treinar nos traces reservados para validação ou avaliação.
 
 | Componente | Estado atual |
 | :--- | :--- |
@@ -20,6 +20,8 @@ O desenvolvimento está organizado em etapas verificáveis. A **Etapa 1** implem
 | Comparação automatizada com o baseline | Implementado |
 | Protocolo multi-semente com IC95% | Implementado |
 | Análise pareada por trace e geral | Implementado |
+| Treinamento robusto com randomização de domínio | Implementado |
+| Validação independente de intensidade de rajadas | Implementado |
 | Segmentos VVC reais e rede `tc/netem` | Pendente |
 
 ### Instalação e testes
@@ -99,6 +101,18 @@ São produzidos:
 
 O resultado geral é calculado entre sementes após obter a média dos traces dentro de cada semente. Assim, medições repetidas nos mesmos traces não aumentam artificialmente o tamanho amostral.
 
+### Generalização a rajadas
+
+A comparação entre o treinamento original e o robusto utiliza os mesmos hiperparâmetros, recompensa e sementes. A única diferença é o aumento determinístico dos traces de treinamento com escala, jitter, deslocamento e quedas curtas:
+
+```bash
+python run_generalization.py \
+  --config generalization_config.json \
+  --output-dir results/generalization
+```
+
+O experimento avalia três controladores — baseline estático, Q-Learning original e Q-Learning robusto — em dois traces independentes de validação e nos três benchmarks congelados. A configuração moderada em `robust_protocol_config.json` foi escolhida na validação por reduzir rebuffering sem sacrificar bitrate frente ao baseline. Os detalhes e intervalos estão em `results/generalization_results.md`.
+
 ## Objetivos
 
 O objetivo geral deste projeto é desenvolver e avaliar metodologicamente uma arquitetura de controle adaptativo para streaming VVC, empregando o algoritmo Q-Learning para a gestão dinâmica da ocupação do buffer. Os objetivos específicos incluem:
@@ -171,6 +185,11 @@ Os valores padrão são `wq=1`, `wr=10`, `ws=0.25`, `wb=1` e buffer-alvo de 8 se
 *   `experimental_protocol.py`: Execuções repetidas, IC95% e diferenças pareadas.
 *   `run_protocol.py`: Interface do protocolo experimental completo.
 *   `protocol_config.json`: Traces, sementes e hiperparâmetros versionados.
+*   `trace_augmentation.py`: Geração reprodutível de variantes de treinamento.
+*   `generalization_experiment.py`: Comparação pareada entre treino original e robusto.
+*   `run_generalization.py`: Interface do experimento de generalização.
+*   `robust_protocol_config.json`: Configuração robusta selecionada na validação.
+*   `generalization_config.json`: Separação entre treino, validação e avaliação.
 *   `streaming_env.py`: Ambiente de streaming segmentado e dinâmica do buffer.
 *   `controllers.py`: Controladores usados como baseline experimental.
 *   `experiment.py`: Orquestração, métricas agregadas e persistência dos resultados.
@@ -187,9 +206,9 @@ Os valores padrão são `wq=1`, `wr=10`, `ws=0.25`, `wb=1` e buffer-alvo de 8 se
 
 ## Separação entre treinamento e avaliação
 
-Os traces `stable.csv` e `fluctuating.csv` são usados no treinamento. Os traces `evaluation_gradual.csv`, `evaluation_bursty.csv` e `evaluation_challenging.csv` ficam reservados para avaliação. Essa divisão evita avaliar a política somente nas mesmas sequências de rede usadas para atualizar a Q-table.
+Os traces `stable.csv` e `fluctuating.csv` são as únicas fontes de treinamento. Suas variantes são geradas em memória e não copiam trechos dos demais conjuntos. `validation_bursty.csv` e `validation_mixed.csv` servem para escolher a intensidade da randomização. `evaluation_gradual.csv`, `evaluation_bursty.csv` e `evaluation_challenging.csv` permanecem reservados para a comparação final.
 
-O protocolo atual já utiliza múltiplos traces, sementes e intervalos de confiança. Ainda faltam mais repetições, traces independentes e representações VVC reais antes de uma conclusão científica sobre o controlador.
+O protocolo atual utiliza múltiplos traces, sementes, intervalos de confiança e separação em três conjuntos. Ainda faltam mais traces independentes, mais repetições e representações VVC reais antes de uma conclusão científica sobre o controlador.
 
 ## Componentes Adicionais e Configuração (Opcional)
 

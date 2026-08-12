@@ -7,4 +7,5 @@ results/runs/*.json
 results/training/*.csv
 results/comparisons/*.csv
 results/protocol/
+results/generalization*/
 models/*.npz

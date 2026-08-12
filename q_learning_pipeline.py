@@ -13,6 +13,7 @@ from typing import Sequence
 from experiment import ExperimentConfig
 from q_learning_agent import QLearningAgent
 from streaming_env import SegmentResult, StreamingConfig, StreamingEnvironment
+from trace_augmentation import TraceAugmentationConfig, augment_bandwidth_trace
 
 
 @dataclass(frozen=True)
@@ -52,6 +53,8 @@ class TrainingConfig:
     def __post_init__(self) -> None:
         if self.episodes <= 0:
             raise ValueError("episodes deve ser positivo")
+        if self.seed < 0:
+            raise ValueError("seed não pode ser negativa")
         if any(value < 0 for value in self.buffer_boundaries_s):
             raise ValueError("os limites do buffer não podem ser negativos")
         if tuple(sorted(set(self.buffer_boundaries_s))) != self.buffer_boundaries_s:
@@ -261,6 +264,7 @@ def train_q_learning(
     experiment_config: ExperimentConfig,
     training_config: TrainingConfig,
     reward_config: RewardConfig,
+    trace_augmentation: TraceAugmentationConfig | None = None,
 ) -> tuple[QLearningAgent, StateEncoder, list[dict[str, object]], dict[str, object]]:
     if not named_traces:
         raise ValueError("forneça ao menos um trace de treinamento")
@@ -287,7 +291,18 @@ def train_q_learning(
     history: list[dict[str, object]] = []
 
     for episode in range(training_config.episodes):
-        trace_name, trace = named_traces[episode % len(named_traces)]
+        trace_name, base_trace = named_traces[episode % len(named_traces)]
+        if trace_augmentation is None:
+            trace = list(base_trace)
+            augmented = False
+        else:
+            augmentation_seed = training_config.seed * 1_000_003 + episode
+            trace = augment_bandwidth_trace(
+                base_trace,
+                trace_augmentation,
+                augmentation_seed,
+            )
+            augmented = trace != list(base_trace)
         environment = _environment(trace, experiment_config)
         controller.reset()
         total_reward = 0.0
@@ -321,6 +336,9 @@ def train_q_learning(
             {
                 "episode": episode,
                 "trace": trace_name,
+                "augmented": augmented,
+                "bandwidth_mean_kbps": fmean(trace),
+                "bandwidth_min_kbps": min(trace),
                 "epsilon": agent.epsilon,
                 "total_reward": total_reward,
                 "mean_reward": total_reward / len(environment.results),
@@ -337,13 +355,16 @@ def train_q_learning(
         agent.decay_epsilon()
 
     metadata: dict[str, object] = {
-        "format_version": 1,
+        "format_version": 2,
         "bitrates_kbps": list(encoder.bitrates_kbps),
         "buffer_boundaries_s": list(encoder.buffer_boundaries_s),
         "experiment_config": asdict(experiment_config),
         "training_config": asdict(training_config),
         "reward_config": asdict(reward_config),
         "training_traces": [name for name, _ in named_traces],
+        "trace_augmentation": (
+            asdict(trace_augmentation) if trace_augmentation is not None else None
+        ),
     }
     return agent, encoder, history, metadata
 

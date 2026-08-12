@@ -1,0 +1,38 @@
+{
+  "protocol_version": 1,
+  "confidence_level": 0.95,
+  "seeds": [11, 23, 37, 53, 71],
+  "training_traces": [
+    "bandwidth_traces/stable.csv",
+    "bandwidth_traces/fluctuating.csv"
+  ],
+  "evaluation_traces": [
+    "bandwidth_traces/evaluation_gradual.csv",
+    "bandwidth_traces/evaluation_bursty.csv",
+    "bandwidth_traces/evaluation_challenging.csv"
+  ],
+  "experiment_config": {
+    "bitrates_kbps": [500, 1000, 2000, 4000],
+    "segment_duration_s": 2.0,
+    "startup_buffer_s": 4.0,
+    "max_buffer_s": 20.0,
+    "low_buffer_s": 4.0,
+    "high_buffer_s": 10.0
+  },
+  "training_config": {
+    "episodes": 4000,
+    "learning_rate": 0.1,
+    "discount_factor": 0.95,
+    "epsilon_start": 1.0,
+    "epsilon_min": 0.05,
+    "epsilon_decay": 0.995,
+    "buffer_boundaries_s": [2.0, 4.0, 6.0, 8.0, 12.0, 16.0]
+  },
+  "reward_config": {
+    "quality_weight": 1.0,
+    "rebuffering_weight": 10.0,
+    "switch_weight": 0.25,
+    "low_buffer_weight": 1.0,
+    "target_buffer_s": 8.0
+  }
+}

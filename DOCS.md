@@ -40,6 +40,20 @@ Na segunda etapa, o agente é treinado no ambiente determinístico de segmentos.
 
 Os arquivos de modelo são artefatos derivados e devem ser reproduzidos pelo script `train_q_learning.py`. Cada modelo contém os hiperparâmetros e pesos da recompensa usados no treinamento.
 
+## Protocolo Estatístico
+
+O arquivo `protocol_config.json` congela a configuração da terceira etapa:
+
+- cinco sementes de treinamento independentes;
+- dois traces exclusivos para treinamento;
+- três traces exclusivos para avaliação;
+- comparação pareada entre Q-Learning e baseline;
+- IC95% bilateral da média com distribuição t de Student.
+
+Para os resultados por trace, cada semente representa uma observação. Para o resultado geral, os traces são primeiro promediados dentro de cada semente e somente então é calculado o intervalo entre sementes. O protocolo não trata os três traces de uma mesma política como repetições independentes.
+
+O sinal da diferença pareada segue `Q-Learning - Estático`. Assim, valores negativos favorecem o Q-Learning para rebuffering, atraso inicial e variabilidade do buffer; valores positivos o favorecem para bitrate médio.
+
 ## Parâmetros de Codificação (VVenC)
 
 Para os experimentos, o VVenC foi configurado com os seguintes parâmetros base:

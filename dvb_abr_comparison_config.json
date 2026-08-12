@@ -1,0 +1,25 @@
+{
+  "comparison_version": 1,
+  "base_protocol": "dvb_uhd1_hfr_selected_protocol_config.json",
+  "parameter_policy": "frozen_before_first_execution_no_evaluation_tuning",
+  "study_status": "post_hoc_extension_after_stage_5_3b_parameters_frozen_before_stage_5_4a",
+  "throughput": {
+    "history_window": 5,
+    "safety_factor": 0.85
+  },
+  "bola_basic": {
+    "minimum_buffer_s": 10.0,
+    "buffer_target_s": 20.0
+  },
+  "robust_mpc": {
+    "horizon": 5,
+    "history_window": 5,
+    "error_window": 5
+  },
+  "references": {
+    "bola": "https://arxiv.org/abs/1601.06748",
+    "robust_mpc": "https://doi.org/10.1145/2785956.2787486",
+    "pensieve_robust_mpc_reference": "https://github.com/hongzimao/pensieve/blob/master/test/mpc.py",
+    "dashjs_bola_reference": "https://github.com/Dash-Industry-Forum/dash.js/blob/development/src/streaming/rules/abr/BolaRule.js"
+  }
+}

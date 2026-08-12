@@ -95,7 +95,7 @@ def calculate_buffer_stability(buffer_occupancy_history):
     Retorna:
     - O desvio padrão da ocupação do buffer. Valores menores indicam maior estabilidade.
     """
-    if not buffer_occupancy_history:
+    if buffer_occupancy_history is None or len(buffer_occupancy_history) == 0:
         return 0.0
     return np.std(buffer_occupancy_history)
 

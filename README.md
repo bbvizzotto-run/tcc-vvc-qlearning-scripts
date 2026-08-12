@@ -6,7 +6,7 @@ Este repositório contém scripts e materiais relacionados ao trabalho de conclu
 
 ## Status da Implementação
 
-O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico e a Etapa 4 melhora a generalização a rajadas. A **Etapa 5.1** adiciona o contrato e o suporte computacional para tamanhos e durações medidos em segmentos pré-codificados.
+O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico, a Etapa 4 melhora a generalização a rajadas e a Etapa 5.1 conecta tamanhos medidos ao simulador. A **Etapa 5.2** automatiza a codificação, a medição e a proveniência de segmentos VVC reais.
 
 | Componente | Estado atual |
 | :--- | :--- |
@@ -23,7 +23,8 @@ O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 impl
 | Treinamento robusto com randomização de domínio | Implementado |
 | Validação independente de intensidade de rajadas | Implementado |
 | Manifesto e simulação com tamanhos reais de segmentos | Implementado |
-| Geração de segmentos VVC reais | Pendente |
+| Pipeline de geração e medição de segmentos VVC reais | Implementado |
+| Dataset VVC real e resultados completos | Pendente de execução com as fontes YUV |
 | Rede `tc/netem` | Pendente |
 
 ### Instalação e testes
@@ -130,6 +131,37 @@ python run_experiment.py \
 
 Sem esse argumento, o comportamento nominal anterior permanece inalterado. O exemplo versionado é sintético e serve somente para validar o formato e o fluxo. O contrato completo está em `segment_manifests/README.md`.
 
+### Geração de segmentos VVC reais
+
+O pipeline da Etapa 5.2 codifica cada segmento de cada representação como um bitstream independente, mede o tamanho em bytes, calcula SHA-256 e, quando o VVdeC está habilitado, decodifica o segmento e calcula PSNR-Y contra o recorte correto da fonte.
+
+Primeiro, copie e ajuste a configuração versionada. Os caminhos relativos são resolvidos em relação ao próprio JSON:
+
+```bash
+cp vvc_pipeline_config.example.json vvc_pipeline_config.local.json
+python generate_vvc_segments.py \
+  --config vvc_pipeline_config.local.json \
+  --dry-run
+```
+
+Após conferir os comandos, execute:
+
+```bash
+python generate_vvc_segments.py \
+  --config vvc_pipeline_config.local.json
+```
+
+O resultado inclui:
+
+- bitstreams `.266` organizados por sequência e representação;
+- logs separados de codificação e decodificação;
+- manifesto CSV aceito diretamente por `--segment-manifest`;
+- arquivo `*.provenance.json` com hashes, versões e comandos executados.
+
+O pipeline exige VVenC 1.13 ou superior porque usa `idr_no_radl`, modo apropriado para segmentos independentemente decodificáveis. A versão recomendada para congelar o experimento é a 1.14.0. O bitrate fornecido ao `vvencapp` é convertido de kbps para bits por segundo e o controle de taxa usa duas passagens por padrão. A configuração fixa oito threads e `mt_profile=0`; qualquer alteração fica registrada na proveniência.
+
+O pipeline verifica o tamanho da fonte YUV antes de codificar e **não repete conteúdo automaticamente**. Os traces de avaliação possuem 30 segmentos de 2 s; portanto, o protocolo completo requer 60 s de conteúdo após `start_frame`. O exemplo BQTerrace contém cinco segmentos apenas como ensaio de integração, devendo ser ajustado à fonte efetivamente disponível. Se uma execução longa for interrompida, `--resume` reutiliza apenas bitstreams cujo comando salvo no log coincide exatamente com a configuração atual. Consulte `segment_manifests/README.md` para o procedimento completo.
+
 ## Objetivos
 
 O objetivo geral deste projeto é desenvolver e avaliar metodologicamente uma arquitetura de controle adaptativo para streaming VVC, empregando o algoritmo Q-Learning para a gestão dinâmica da ocupação do buffer. Os objetivos específicos incluem:
@@ -209,6 +241,9 @@ Os valores padrão são `wq=1`, `wr=10`, `ws=0.25`, `wb=1` e buffer-alvo de 8 se
 *   `generalization_config.json`: Separação entre treino, validação e avaliação.
 *   `segment_manifest.py`: Leitura, validação e consulta dos segmentos medidos.
 *   `segment_manifests/`: Contrato CSV e manifesto ilustrativo.
+*   `vvc_segment_pipeline.py`: Codificação, decodificação, medição e proveniência VVC.
+*   `generate_vvc_segments.py`: Interface de linha de comando da Etapa 5.2.
+*   `vvc_pipeline_config.example.json`: Configuração reproduzível de exemplo.
 *   `streaming_env.py`: Ambiente de streaming segmentado e dinâmica do buffer.
 *   `controllers.py`: Controladores usados como baseline experimental.
 *   `experiment.py`: Orquestração, métricas agregadas e persistência dos resultados.
@@ -227,7 +262,7 @@ Os valores padrão são `wq=1`, `wr=10`, `ws=0.25`, `wb=1` e buffer-alvo de 8 se
 
 Os traces `stable.csv` e `fluctuating.csv` são as únicas fontes de treinamento. Suas variantes são geradas em memória e não copiam trechos dos demais conjuntos. `validation_bursty.csv` e `validation_mixed.csv` servem para escolher a intensidade da randomização. `evaluation_gradual.csv`, `evaluation_bursty.csv` e `evaluation_challenging.csv` permanecem reservados para a comparação final.
 
-O protocolo atual utiliza múltiplos traces, sementes, intervalos de confiança e separação em três conjuntos. A infraestrutura já aceita tamanhos reais, mas o exemplo disponível ainda é sintético. Faltam gerar as representações VVC, medir seus segmentos e repetir o protocolo antes de uma conclusão científica sobre o controlador.
+O protocolo atual utiliza múltiplos traces, sementes, intervalos de confiança e separação em três conjuntos. A infraestrutura já gera e aceita manifestos medidos, mas nenhum resultado real é versionado enquanto o pipeline não for executado sobre as fontes YUV declaradas. Ainda é necessário produzir o dataset de segmentos e repetir o protocolo antes de uma conclusão científica sobre o controlador.
 
 ## Componentes Adicionais e Configuração (Opcional)
 
@@ -248,21 +283,24 @@ sudo apt install iproute2
 
 ### 2. Codificador VVC: `VVenC`
 
-O `VVenC` é o codificador de referência para o padrão VVC.
+O `VVenC` é um codificador VVC aberto e otimizado. O software de referência normativa do padrão é o VTM; neste projeto, o VVenC é adotado por oferecer controle de taxa e tempo de execução mais apropriados ao pipeline experimental.
 
 **Instalação:**
 ```bash
 git clone https://github.com/fraunhoferhhi/vvenc.git
 cd vvenc
-mkdir build && cd build
-cmake ..
-make -j$(nproc)
-sudo make install
+git checkout vvenc-v1.14.0
+cmake -S . -B build/release-static \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DVVENC_FFP_CONTRACT_OFF=On
+cmake --build build/release-static -j
 ```
 
-**Uso do Script `vvenc_config.sh`:**
+Também é necessário compilar o [VVdeC](https://github.com/fraunhoferhhi/vvdec) e deixar `vvencapp` e `vvdecapp` no `PATH`, ou informar seus caminhos absolutos no JSON. O `vvenc_config.sh` permanece como atalho para uma única codificação; a matriz experimental deve ser gerada por `generate_vvc_segments.py`.
+
+**Uso isolado do Script `vvenc_config.sh`:**
 ```bash
-./vvenc_config.sh <input_yuv_file> <output_vvc_file> [bitrate_kbps] [resolution] [preset]
+./vvenc_config.sh <input.yuv> <output.266> [bitrate_kbps] [resolução] [fps] [preset] [quadros]
 ```
 
 ## Referência

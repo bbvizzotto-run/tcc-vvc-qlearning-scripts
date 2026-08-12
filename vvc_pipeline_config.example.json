@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "source": {
+    "name": "BQTerrace",
+    "input_yuv": "datasets/BQTerrace_1920x1080_60fps_8bit_420.yuv",
+    "width": 1920,
+    "height": 1080,
+    "fps_num": 60,
+    "fps_den": 1,
+    "bit_depth": 8,
+    "start_frame": 0,
+    "segment_count": 5,
+    "segment_duration_s": 2.0
+  },
+  "bitrates_kbps": [500, 1000, 2000, 4000],
+  "output_dir": "artifacts/vvc",
+  "manifest_path": "segment_manifests/bqterrace_measured.csv",
+  "encoder": {
+    "executable": "vvencapp",
+    "preset": "medium",
+    "passes": 2,
+    "qpa": true,
+    "internal_bit_depth": 8,
+    "refresh_type": "idr_no_radl",
+    "threads": 8,
+    "mt_profile": 0,
+    "minimum_version": "1.13.0"
+  },
+  "decoder": {
+    "executable": "vvdecapp",
+    "compute_psnr_y": true,
+    "keep_reconstructions": false
+  },
+  "hash_source": true
+}

@@ -1,6 +1,75 @@
 import numpy as np
 import os
 
+
+def calculate_psnr_yuv_segment(
+    original_yuv_path,
+    reconstructed_yuv_path,
+    width,
+    height,
+    num_frames,
+    original_start_frame=0,
+    bit_depth=8,
+):
+    """Calcula PSNR-Y médio para um recorte de uma fonte YUV 4:2:0.
+
+    A reconstrução deve começar no primeiro quadro do segmento, enquanto
+    ``original_start_frame`` aponta para o mesmo recorte na fonte completa.
+    Quadros idênticos mantêm a convenção histórica do projeto de 100 dB.
+    """
+
+    if width <= 0 or height <= 0 or width % 2 or height % 2:
+        raise ValueError("width e height devem ser positivos e pares")
+    if num_frames <= 0:
+        raise ValueError("num_frames deve ser positivo")
+    if original_start_frame < 0:
+        raise ValueError("original_start_frame não pode ser negativo")
+    if bit_depth not in (8, 10):
+        raise ValueError("bit_depth deve ser 8 ou 10")
+
+    bytes_per_sample = 1 if bit_depth == 8 else 2
+    y_size = width * height * bytes_per_sample
+    frame_size = width * height * 3 // 2 * bytes_per_sample
+    dtype = np.uint8 if bit_depth == 8 else np.dtype("<u2")
+    max_pixel_value = (1 << bit_depth) - 1
+    psnr_values = []
+
+    with open(original_yuv_path, "rb") as original, open(
+        reconstructed_yuv_path,
+        "rb",
+    ) as reconstructed:
+        original.seek(original_start_frame * frame_size)
+        for frame_index in range(num_frames):
+            y_original_bytes = original.read(y_size)
+            y_reconstructed_bytes = reconstructed.read(y_size)
+            if len(y_original_bytes) != y_size:
+                raise ValueError(
+                    f"a fonte terminou antes do quadro {frame_index} do segmento"
+                )
+            if len(y_reconstructed_bytes) != y_size:
+                raise ValueError(
+                    "a reconstrução terminou antes do quadro "
+                    f"{frame_index} do segmento"
+                )
+            original.seek(frame_size - y_size, os.SEEK_CUR)
+            reconstructed.seek(frame_size - y_size, os.SEEK_CUR)
+
+            y_original = np.frombuffer(y_original_bytes, dtype=dtype).astype(
+                np.float64
+            )
+            y_reconstructed = np.frombuffer(
+                y_reconstructed_bytes,
+                dtype=dtype,
+            ).astype(np.float64)
+            mse = np.mean((y_original - y_reconstructed) ** 2)
+            psnr_values.append(
+                100.0
+                if mse == 0
+                else 10 * np.log10((max_pixel_value**2) / mse)
+            )
+
+    return float(np.mean(psnr_values))
+
 def calculate_psnr_yuv(original_yuv_path, encoded_yuv_path, width, height, num_frames, bit_depth=8):
     """
     Calcula o PSNR (Peak Signal-to-Noise Ratio) médio do componente de luminância (Y) 

@@ -1,61 +1,61 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Script para exemplificar o uso do codificador VVenC (Versatile Video Encoder).
-# Este script demonstra como codificar um vídeo de entrada usando o padrão VVC com parâmetros básicos.
+# Compatibilidade para uma codificação VVC isolada. Para gerar toda a matriz
+# segmento × representação e o manifesto, use generate_vvc_segments.py.
 
-# Pré-requisitos:
-# 1. VVenC deve estar instalado e acessível no PATH. Para instalar, siga as instruções em:
-#    https://vvenc.fraunhofer.de/en/download.html ou compile a partir do código-fonte:
-#    git clone https://github.com/fraunhoferhhi/vvenc.git
-#    cd vvenc
-#    mkdir build && cd build
-#    cmake ..
-#    make -j$(nproc)
-#    sudo make install
+set -euo pipefail
 
-# Uso: ./vvenc_config.sh <input_yuv_file> <output_vvc_file> [bitrate_kbps] [resolution] [preset]
-# Exemplo: ./vvenc_config.sh input.yuv output.vvc 2000 1920x1080 fast
-
-INPUT_YUV=$1
-OUTPUT_VVC=$2
-BITRATE=${3:-2000} # Bitrate em kbps (padrão: 2000 kbps)
-RESOLUTION=${4:-1920x1080} # Resolução (ex: 1920x1080) (padrão: 1920x1080)
-PRESET=${5:-medium} # Preset de codificação (ex: fast, medium, slow) (padrão: medium)
-
-if [ -z "$INPUT_YUV" ] || [ -z "$OUTPUT_VVC" ]; then
-    echo "Uso: $0 <input_yuv_file> <output_vvc_file> [bitrate_kbps] [resolution] [preset]"
-    echo "Exemplo: $0 input.yuv output.vvc 2000 1920x1080 fast"
+if [[ $# -lt 2 ]]; then
+    echo "Uso: $0 <input.yuv> <output.266> [bitrate_kbps] [resolução] [fps] [preset] [quadros]" >&2
+    echo "Exemplo: $0 input.yuv output.266 2000 1920x1080 60/1 medium 120" >&2
     exit 1
 fi
 
-echo "Iniciando codificação VVC com VVenC..."
-echo "  Entrada: $INPUT_YUV"
-echo "  Saída: $OUTPUT_VVC"
-echo "  Bitrate: ${BITRATE} kbps"
-echo "  Resolução: $RESOLUTION"
-echo "  Preset: $PRESET"
+input_yuv=$1
+output_vvc=$2
+bitrate_kbps=${3:-2000}
+resolution=${4:-1920x1080}
+fps=${5:-60/1}
+preset=${6:-medium}
+frames=${7:-0}
 
-# Extrai largura e altura da resolução
-WIDTH=$(echo $RESOLUTION | cut -d'x' -f1)
-HEIGHT=$(echo $RESOLUTION | cut -d'x' -f2)
-
-# Comando VVenC
-# Nota: Os parâmetros exatos podem variar dependendo da versão do VVenC e dos requisitos específicos.
-# Consulte a documentação oficial do VVenC para uma lista completa de opções.
-
-vvencapp -i $INPUT_YUV \
-         --input-res ${WIDTH}x${HEIGHT} \
-         --frames 100 \
-         --preset $PRESET \
-         --bitrate $BITRATE \
-         -o $OUTPUT_VVC
-
-# --frames 100 é um exemplo. Em um cenário real, você pode querer codificar o vídeo inteiro ou um número específico de frames.
-# --input-chroma-format e --input-bit-depth podem ser necessários dependendo do seu arquivo YUV de entrada.
-
-if [ $? -eq 0 ]; then
-    echo "Codificação VVC concluída com sucesso!"
-else
-    echo "Erro durante a codificação VVC."
+if ! command -v vvencapp >/dev/null 2>&1; then
+    echo "Erro: vvencapp não foi encontrado no PATH." >&2
     exit 1
 fi
+if [[ ! -f "$input_yuv" ]]; then
+    echo "Erro: fonte YUV não encontrada: $input_yuv" >&2
+    exit 1
+fi
+if [[ ! "$bitrate_kbps" =~ ^[1-9][0-9]*$ ]]; then
+    echo "Erro: bitrate_kbps deve ser um inteiro positivo." >&2
+    exit 1
+fi
+if [[ ! "$frames" =~ ^[0-9]+$ ]]; then
+    echo "Erro: quadros deve ser um inteiro não negativo." >&2
+    exit 1
+fi
+
+command=(
+    vvencapp
+    --input "$input_yuv"
+    --size "$resolution"
+    --fps "$fps"
+    --format yuv420
+    --internal-bitdepth 8
+    --preset "$preset"
+    --bitrate "$((bitrate_kbps * 1000))"
+    --passes 2
+    --qpa 1
+    --refreshtype idr_no_radl
+    --mtprofile 0
+    --output "$output_vvc"
+)
+if [[ "$frames" -gt 0 ]]; then
+    command+=(--frames "$frames")
+fi
+
+printf 'Executando:'
+printf ' %q' "${command[@]}"
+printf '\n'
+"${command[@]}"

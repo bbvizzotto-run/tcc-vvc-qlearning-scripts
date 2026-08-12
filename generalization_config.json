@@ -1,0 +1,9 @@
+{
+  "experiment_version": 1,
+  "standard_protocol": "protocol_config.json",
+  "robust_protocol": "robust_protocol_config.json",
+  "validation_traces": [
+    "bandwidth_traces/validation_bursty.csv",
+    "bandwidth_traces/validation_mixed.csv"
+  ]
+}

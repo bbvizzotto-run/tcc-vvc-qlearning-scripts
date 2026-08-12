@@ -19,6 +19,7 @@ from q_learning_pipeline import (
     run_q_learning_experiment,
     train_q_learning,
 )
+from trace_augmentation import TraceAugmentationConfig
 
 
 METRICS: tuple[str, ...] = (
@@ -86,6 +87,7 @@ class ProtocolDefinition:
     experiment_config: ExperimentConfig
     training_config: TrainingConfig
     reward_config: RewardConfig
+    trace_augmentation: TraceAugmentationConfig | None = None
 
 
 @dataclass
@@ -167,10 +169,15 @@ def load_protocol_definition(path: str | Path) -> ProtocolDefinition:
         experiment_config=ExperimentConfig(**experiment_raw),
         training_config=TrainingConfig(**training_raw),
         reward_config=RewardConfig(**raw["reward_config"]),
+        trace_augmentation=(
+            TraceAugmentationConfig(**raw["trace_augmentation"])
+            if raw.get("trace_augmentation") is not None
+            else None
+        ),
     )
 
 
-def _clone_agent(agent: QLearningAgent, seed: int) -> QLearningAgent:
+def clone_agent(agent: QLearningAgent, seed: int) -> QLearningAgent:
     clone = QLearningAgent(
         state_space_size=agent.state_space_size,
         action_space_size=agent.action_space_size,
@@ -329,6 +336,7 @@ def execute_protocol(definition: ProtocolDefinition) -> ProtocolResult:
             experiment_config,
             training_config,
             definition.reward_config,
+            definition.trace_augmentation,
         )
         models[seed] = (agent, metadata)
         final_window = history[-min(50, len(history)) :]
@@ -354,7 +362,7 @@ def execute_protocol(definition: ProtocolDefinition) -> ProtocolResult:
                 experiment_config,
             )
             evaluation_seed = seed * 1009 + trace_index
-            evaluation_agent = _clone_agent(agent, evaluation_seed)
+            evaluation_agent = clone_agent(agent, evaluation_seed)
             _, q_summary = run_q_learning_experiment(
                 trace,
                 experiment_config,
@@ -454,6 +462,11 @@ def save_protocol_result(
         "experiment_config": asdict(definition.experiment_config),
         "training_config": asdict(definition.training_config),
         "reward_config": asdict(definition.reward_config),
+        "trace_augmentation": (
+            asdict(definition.trace_augmentation)
+            if definition.trace_augmentation is not None
+            else None
+        ),
         "models": model_paths,
     }
     with paths["manifest"].open("w", encoding="utf-8") as handle:

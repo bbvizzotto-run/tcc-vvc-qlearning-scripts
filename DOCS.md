@@ -107,6 +107,28 @@ Antes da codificação, o tamanho do YUV deve ser múltiplo do tamanho esperado 
 
 O exemplo BQTerrace prevê cinco segmentos de 2 s. Isso é suficiente para validar o fluxo, não para executar os traces de avaliação de 30 segmentos. Para o experimento completo, deve-se usar uma fonte de pelo menos 60 s ou construir externamente uma sequência composta, registrando a composição e seu hash como parte do dataset.
 
+## Importação DVB-DASH — Etapa 5.2b
+
+A vertente DVB complementa o pipeline controlado. Em vez de recodificar um YUV, `import_dvb_dash.py` recebe um MPD estático de um pacote local e produz o manifesto usado pelo mesmo ambiente. Isso permite avaliar o agente sobre objetos de entrega VVC efetivamente empacotados em ISO-BMFF/DASH, incluindo o overhead de cada `.m4s`.
+
+O parser usa a biblioteca padrão do Python e cobre:
+
+- herança de atributos entre `Period`, `AdaptationSet` e `Representation`;
+- `BaseURL` local nos níveis do MPD;
+- `SegmentTemplate` com `$RepresentationID$`, `$Bandwidth$`, `$Number$` e `$Time$`;
+- especificadores numéricos, como `$Number%05d$`;
+- `SegmentTimeline`, incluindo repetições positivas e `r=-1` com limite conhecido;
+- `SegmentList` com duração fixa ou timeline;
+- seleção explícita de representações e limite opcional de segmentos.
+
+MPDs dinâmicos, URLs remotas e múltiplos períodos de vídeo são rejeitados nesta versão para evitar uma composição temporal implícita. Todos os arquivos devem ser extraídos antes da medição. O importador também verifica codec VVC quando o atributo `codecs` está declarado.
+
+Para cada segmento de mídia, são medidos tamanho e SHA-256. O segmento de inicialização é excluído porque o modelo atual toma uma decisão por segmento de mídia e não modela downloads de inicialização. A proveniência contém os hashes do MPD, do ZIP original quando fornecido, do importador e do manifesto, bem como os metadados das representações e os termos informados na linha de comando.
+
+O atributo `bandwidth` é convertido de bits/s para kbps decimais e passa a identificar a ação no simulador. O agente e o baseline já aceitam qualquer quantidade de níveis, mas uma escada adaptativa exige pelo menos duas representações. O protocolo opcional gerado pelo importador copia o JSON-base e substitui `experiment_config.bitrates_kbps`, `segment_duration_s` e `segment_manifest`.
+
+PSNR-Y não é inferido. Sem o master YUV exato usado na produção do pacote, não existe referência válida para essa medição. Assim, a vertente DVB é usada para realismo de entrega e comportamento ABR; a vertente VVenC permanece responsável por controle de codificação e comparação objetiva com a fonte.
+
 ## Parâmetros de Codificação (VVenC)
 
 Para os experimentos, o VVenC é configurado com os seguintes parâmetros base:

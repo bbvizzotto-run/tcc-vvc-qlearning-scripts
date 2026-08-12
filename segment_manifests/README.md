@@ -66,3 +66,23 @@ Para treinamento, comparação ou avaliação Q-Learning, use o mesmo argumento 
 ```
 
 O hash do próprio manifesto, sua sequência, escada e quantidade de segmentos são armazenados nos resumos, modelos e manifestos experimentais.
+
+## Geração automatizada — Etapa 5.2
+
+O arquivo `vvc_pipeline_config.example.json` documenta a fonte, a escada e as ferramentas. Para inspecionar a matriz sem codificar:
+
+```bash
+python generate_vvc_segments.py \
+  --config vvc_pipeline_config.example.json \
+  --dry-run
+```
+
+Depois de copiar o JSON e apontar `input_yuv` para a fonte real, remova `--dry-run`. O pipeline:
+
+1. valida o layout e a quantidade de quadros da fonte;
+2. codifica um `.266` independente para cada par segmento–bitrate;
+3. decodifica o payload com VVdeC e mede PSNR-Y, quando habilitado;
+4. mede bytes e SHA-256 diretamente no arquivo transferível;
+5. grava este manifesto e um `*.provenance.json` auditável.
+
+Arquivos existentes não são substituídos por padrão. `--resume` reaproveita uma codificação parcial somente quando a primeira linha do log contém exatamente o comando esperado; a reconstrução e a medição são refeitas. `--overwrite` deve ser usado somente para repetir conscientemente toda a configuração. O pipeline não concatena nem repete fontes curtas. Para os traces de avaliação existentes, são necessários 30 segmentos, isto é, 60 s quando cada segmento dura 2 s.

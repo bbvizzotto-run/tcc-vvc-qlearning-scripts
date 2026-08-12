@@ -4,7 +4,7 @@ Este documento detalha as especificações do ambiente experimental, incluindo o
 
 ## Dataset de Vídeos
 
-Para a futura avaliação com conteúdo VVC real, foram selecionadas sequências de teste padronizadas do CTC (*Common Test Conditions*) do VVC. Os experimentos reproduzíveis com essas sequências ainda serão incorporados ao repositório.
+Para a avaliação com conteúdo VVC real, foram selecionadas sequências de teste padronizadas do CTC (*Common Test Conditions*) do VVC. A Etapa 5.2 fornece a automação reproduzível, mas os arquivos YUV, bitstreams e resultados medidos não são versionados neste repositório.
 
 ### Sequências Planejadas:
 | Sequência | Resolução | Taxa de Quadros (fps) | Classe | Descrição |
@@ -18,12 +18,15 @@ Para a futura avaliação com conteúdo VVC real, foram selecionadas sequências
 
 ## Versões das Ferramentas
 
-A arquitetura experimental prevê as seguintes versões de software, que deverão ser registradas novamente quando os experimentos reais forem executados:
+A arquitetura experimental congela as seguintes versões recomendadas. O arquivo de proveniência registra as versões realmente encontradas em cada execução:
 
-- **Codificador VVC (VVenC):** Versão v1.7.0 (Fraunhofer HHI).
+- **Codificador VVC (VVenC):** versão 1.14.0 (mínimo 1.13.0 para `idr_no_radl`).
+- **Decodificador VVC (VVdeC):** versão instalada registrada por `vvdecapp --version`.
 - **Simulador de Rede:** `tc/netem` integrado ao Kernel Linux 5.x ou superior.
 - **Python:** Versão 3.10+ (utilizado para o agente Q-Learning e scripts de métricas).
 - **NumPy:** Versão 1.24+ (para processamento de matrizes e Q-table).
+
+As opções de linha de comando seguem a [documentação oficial de uso do VVenC](https://github.com/fraunhoferhhi/vvenc/wiki/Usage), e a versão congelada pode ser conferida nas [releases oficiais](https://github.com/fraunhoferhhi/vvenc/releases).
 
 ## Controlador Q-Learning Simulado
 
@@ -85,10 +88,31 @@ A duração medida também é usada no acréscimo ao buffer, no controle de over
 
 O contrato detalhado está em `segment_manifests/README.md`. `example_segments.csv` contém apenas dados ilustrativos e não deve ser citado como codificação VVC real.
 
+## Pipeline VVC — Etapa 5.2
+
+`generate_vvc_segments.py` lê `vvc_pipeline_config.example.json` e expande uma matriz completa de segmentos e representações. Cada item é codificado separadamente com VVenC em controle de taxa de duas passagens. O valor nominal em kbps é multiplicado por 1000, pois a opção `--bitrate` do VVenC recebe bits por segundo.
+
+Cada comando fixa explicitamente resolução, taxa de quadros racional, formato de entrada, profundidade interna, número e deslocamento de quadros, preset, QPA, threads, perfil de multithreading e tipo de refresh. O padrão `idr_no_radl`, disponível desde o VVenC 1.13, inicia períodos com IDR sem imagens líderes e evita dependência externa ao segmento. Como cada arquivo `.266` é codificado isoladamente, o payload registrado é independentemente decodificável.
+
+Essa escolha inclui em cada payload o custo de acesso aleatório, parameter sets e demais cabeçalhos do bitstream bruto. Ela representa um conjunto controlado de objetos VVC independentes, não um empacotamento DASH/CMAF. Uma avaliação posterior com `.m4s` deverá medir o arquivo de contêiner completo e declarar separadamente seu overhead.
+
+Quando `compute_psnr_y` está ativo, o VVdeC reconstrói cada bitstream. O cálculo de PSNR-Y compara essa reconstrução com os quadros correspondentes na fonte completa, usando `start_frame + segment × frames_per_segment`. Quadros idênticos recebem 100 dB para manter a convenção histórica do projeto. As reconstruções podem ser removidas depois da medição; os bitstreams, logs, hashes e comandos permanecem rastreáveis.
+
+O pipeline produz dois documentos:
+
+1. `*.csv`: manifesto consumido pelo simulador, contendo tamanho, duração, PSNR-Y, caminho e SHA-256 de cada payload;
+2. `*.provenance.json`: configuração normalizada, hash da fonte, do JSON e do módulo do pipeline, commit Git, versões das ferramentas, plataforma e comandos completos.
+
+Antes da codificação, o tamanho do YUV deve ser múltiplo do tamanho esperado de um quadro 4:2:0. Também deve haver quadros suficientes para todos os segmentos. Não há repetição ou preenchimento silencioso de conteúdo. O modo `--dry-run` permite auditar todos os comandos sem exigir a presença da fonte ou dos executáveis.
+
+O exemplo BQTerrace prevê cinco segmentos de 2 s. Isso é suficiente para validar o fluxo, não para executar os traces de avaliação de 30 segmentos. Para o experimento completo, deve-se usar uma fonte de pelo menos 60 s ou construir externamente uma sequência composta, registrando a composição e seu hash como parte do dataset.
+
 ## Parâmetros de Codificação (VVenC)
 
-Para os experimentos, o VVenC foi configurado com os seguintes parâmetros base:
+Para os experimentos, o VVenC é configurado com os seguintes parâmetros base:
 - **Preset:** `medium` (equilíbrio entre eficiência e tempo de codificação).
-- **GOP Size:** 32 ou 64 (conforme a duração do segmento).
-- **Bitrate:** Variável conforme as ações do agente Q-Learning.
-- **Format:** YUV 4:2:0 8-bit ou 10-bit.
+- **Controle de taxa:** duas passagens, com QPA habilitado.
+- **Refresh:** `idr_no_radl` para independência entre arquivos de segmento.
+- **Paralelismo:** oito threads e `mt_profile=0` no exemplo versionado.
+- **Bitrate:** escada nominal de 500, 1000, 2000 e 4000 kbps.
+- **Formato:** YUV 4:2:0 de 8 ou 10 bits, sem conversão implícita de profundidade.

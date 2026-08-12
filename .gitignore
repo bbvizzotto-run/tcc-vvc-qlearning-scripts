@@ -9,3 +9,7 @@ results/comparisons/*.csv
 results/protocol/
 results/generalization*/
 models/*.npz
+artifacts/
+datasets/
+*.recon.yuv
+vvc_pipeline_config.local.json

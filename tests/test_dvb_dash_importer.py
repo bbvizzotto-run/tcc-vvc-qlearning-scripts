@@ -1,5 +1,7 @@
 import csv
 import json
+import hashlib
+import struct
 import tempfile
 import unittest
 from pathlib import Path
@@ -52,6 +54,8 @@ class DvbDashImporterTest(unittest.TestCase):
                 json.dumps(
                     {
                         "protocol_version": 1,
+                        "training_traces": ["train.csv"],
+                        "evaluation_traces": ["eval.csv"],
                         "experiment_config": {
                             "bitrates_kbps": [500],
                             "segment_duration_s": 1.0,
@@ -71,6 +75,7 @@ class DvbDashImporterTest(unittest.TestCase):
                 license_url="https://creativecommons.org/licenses/by/4.0/",
                 protocol_template_path=protocol_template,
                 protocol_config_path=protocol_output,
+                bandwidth_scale=10,
             )
             manifest = load_segment_manifest(manifest_path)
             provenance = json.loads(
@@ -93,6 +98,14 @@ class DvbDashImporterTest(unittest.TestCase):
         self.assertIsNone(provenance["quality"]["psnr_y_db"])
         self.assertEqual(protocol["experiment_config"]["bitrates_kbps"], [800, 1600])
         self.assertEqual(protocol["segment_manifest"], "out/dvb.csv")
+        self.assertEqual(
+            protocol["training_traces"],
+            [{"path": "train.csv", "bandwidth_scale": 10}],
+        )
+        self.assertEqual(
+            protocol["evaluation_traces"],
+            [{"path": "eval.csv", "bandwidth_scale": 10}],
+        )
 
     def test_filters_representations_and_segments(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -134,6 +147,98 @@ class DvbDashImporterTest(unittest.TestCase):
 
         self.assertEqual([item.bitrate_kbps for item in representations], [500, 1000])
         self.assertEqual(representations[0].segments[1].duration_s, 2.0)
+
+    def _sidx_file(
+        self,
+        path: Path,
+        segment_payloads: tuple[bytes, ...],
+        durations: tuple[int, ...] = (20, 30),
+    ) -> tuple[int, int, int]:
+        prefix = b"initial!"
+        references = b"".join(
+            struct.pack(">III", len(payload), duration, 0x90000000)
+            for payload, duration in zip(segment_payloads, durations)
+        )
+        body = (
+            b"\x00\x00\x00\x00"
+            + struct.pack(">II", 1, 10)
+            + struct.pack(">II", 0, 0)
+            + struct.pack(">HH", 0, len(segment_payloads))
+            + references
+        )
+        box = struct.pack(">I4s", 8 + len(body), b"sidx") + body
+        path.write_bytes(prefix + box + b"".join(segment_payloads))
+        index_start = len(prefix)
+        index_end = index_start + len(box) - 1
+        media_start = index_end + 1
+        return index_start, index_end, media_start
+
+    def test_supports_segment_base_sidx_byte_ranges(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            a_payloads = (b"a" * 5, b"b" * 7)
+            b_payloads = (b"c" * 11, b"d" * 13)
+            index_start, index_end, media_start = self._sidx_file(
+                root / "a.mp4",
+                a_payloads,
+            )
+            self._sidx_file(root / "b.mp4", b_payloads)
+            mpd = root / "base.mpd"
+            mpd.write_text(
+                f"""<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" type="static">
+                  <Period duration="PT5S">
+                    <AdaptationSet contentType="video" codecs="vvi1.1.L86.CQA">
+                      <Representation id="a" bandwidth="500000">
+                        <BaseURL>a.mp4</BaseURL>
+                        <SegmentBase indexRange="{index_start}-{index_end}"/>
+                      </Representation>
+                      <Representation id="b" bandwidth="1000000">
+                        <BaseURL>b.mp4</BaseURL>
+                        <SegmentBase indexRange="{index_start}-{index_end}"/>
+                      </Representation>
+                    </AdaptationSet>
+                  </Period>
+                </MPD>""",
+                encoding="utf-8",
+            )
+            output = root / "base.csv"
+            import_dvb_dash(mpd, output, attribution="Test content owner")
+            manifest = load_segment_manifest(output)
+            provenance = json.loads(
+                output.with_suffix(".provenance.json").read_text(encoding="utf-8")
+            )
+
+        first = manifest.get(0, 500)
+        second = manifest.get(1, 1000)
+        self.assertEqual(first.duration_s, 2.0)
+        self.assertEqual(first.size_bytes, 5)
+        self.assertEqual(first.source_file, f"a.mp4#bytes={media_start}-{media_start + 4}")
+        self.assertEqual(first.sha256, hashlib.sha256(a_payloads[0]).hexdigest())
+        self.assertEqual(second.duration_s, 3.0)
+        self.assertEqual(second.size_bytes, 13)
+        self.assertEqual(
+            provenance["representations"][0]["addressing_mode"],
+            "SegmentBase",
+        )
+
+    def test_rejects_segment_base_without_sidx(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "video.mp4").write_bytes(b"not-a-sidx-box")
+            mpd = root / "invalid.mpd"
+            mpd.write_text(
+                """<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" type="static">
+                  <Period duration="PT2S"><AdaptationSet contentType="video">
+                    <Representation id="a" bandwidth="500000" codecs="vvc1">
+                      <BaseURL>video.mp4</BaseURL>
+                      <SegmentBase indexRange="0-7"/>
+                    </Representation>
+                  </AdaptationSet></Period>
+                </MPD>""",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "não aponta.*SIDX"):
+                parse_mpd(mpd)
 
     def test_rejects_a_missing_media_segment_before_writing_manifest(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -53,13 +53,13 @@ METRICS: tuple[str, ...] = (
     "average_payload_bitrate_kbps",
     "buffer_mean_s",
     "buffer_std_s",
-    "mean_qoe_reward",
+    "mean_objective_reward",
     "switch_count",
     "high_representation_fraction_percent",
 )
 COMPARISON_BETTER_WHEN: Mapping[str, str] = {
     **BETTER_WHEN,
-    "mean_qoe_reward": "higher",
+    "mean_objective_reward": "higher",
     "switch_count": "lower",
     "high_representation_fraction_percent": "descriptive",
 }
@@ -146,7 +146,7 @@ def _summary_metrics(
             "average_payload_bitrate_kbps": payload_kbits / video_duration_s,
             "buffer_mean_s": fmean(buffers),
             "buffer_std_s": pstdev(buffers),
-            "mean_qoe_reward": total_reward / len(rows),
+            "mean_objective_reward": total_reward / len(rows),
             "switch_count": switches,
             "high_representation_fraction_percent": 100.0
             * sum(bitrate == max(bitrates_kbps) for bitrate in selected)
@@ -258,7 +258,7 @@ def _q_learning_metrics(
     enriched = dict(summary)
     enriched.update(
         {
-            "mean_qoe_reward": float(summary["mean_reward"]),
+            "mean_objective_reward": float(summary["mean_reward"]),
             "switch_count": sum(
                 current != previous
                 for previous, current in zip(selected, selected[1:])
@@ -558,6 +558,11 @@ def save_abr_comparison_result(
         "decision_information_policy": (
             "only completed-segment throughput, current buffer, and public "
             "segment metadata; no current-segment bandwidth"
+        ),
+        "reward_scope": (
+            "the frozen project objective includes quality, post-startup "
+            "rebuffering, switching, and low buffer; startup delay is reported "
+            "as a separate metric but is not part of the optimized objective"
         ),
         "confidence_level": base.confidence_level,
         "confidence_method": "two-sided Student t interval for the mean",

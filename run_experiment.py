@@ -1,4 +1,4 @@
-"""Interface de linha de comando para a primeira etapa experimental."""
+"""Executa controladores estático ou Q-Learning no mesmo ambiente."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from experiment import (
     run_static_experiment,
     save_results,
 )
+from q_learning_pipeline import components_from_model, run_q_learning_experiment
 
 
 def parse_bitrates(value: str) -> tuple[int, ...]:
@@ -26,11 +27,20 @@ def parse_bitrates(value: str) -> tuple[int, ...]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Executa o baseline estático no simulador de streaming.",
+        description="Executa um controlador no simulador de streaming.",
     )
-    parser.add_argument("--controller", choices=("static",), default="static")
+    parser.add_argument(
+        "--controller",
+        choices=("static", "q-learning"),
+        default="static",
+    )
     parser.add_argument("--trace", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--model",
+        type=Path,
+        help="modelo NPZ obrigatório para o controlador q-learning",
+    )
     parser.add_argument("--segments", type=int)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--bitrates", type=parse_bitrates, default=(500, 1000, 2000, 4000))
@@ -44,17 +54,33 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = build_parser().parse_args()
-    config = ExperimentConfig(
-        bitrates_kbps=args.bitrates,
-        segment_duration_s=args.segment_duration,
-        startup_buffer_s=args.startup_buffer,
-        max_buffer_s=args.max_buffer,
-        low_buffer_s=args.low_buffer,
-        high_buffer_s=args.high_buffer,
-        seed=args.seed,
-    )
     trace = load_bandwidth_trace(args.trace)
-    rows, summary = run_static_experiment(trace, config, args.segments)
+    if args.controller == "static":
+        config = ExperimentConfig(
+            bitrates_kbps=args.bitrates,
+            segment_duration_s=args.segment_duration,
+            startup_buffer_s=args.startup_buffer,
+            max_buffer_s=args.max_buffer,
+            low_buffer_s=args.low_buffer,
+            high_buffer_s=args.high_buffer,
+            seed=args.seed,
+        )
+        rows, summary = run_static_experiment(trace, config, args.segments)
+    else:
+        if args.model is None:
+            raise SystemExit("--model é obrigatório para --controller q-learning")
+        agent, encoder, config, reward_config, _ = components_from_model(
+            args.model,
+            seed=args.seed,
+        )
+        rows, summary = run_q_learning_experiment(
+            trace,
+            config,
+            agent,
+            encoder,
+            reward_config,
+            args.segments,
+        )
     csv_path, summary_path = save_results(rows, summary, args.output)
 
     print(json.dumps(summary, ensure_ascii=False, indent=2))

@@ -1,150 +1,153 @@
+"""Implementação reutilizável do algoritmo Q-Learning tabular."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Mapping
+
 import numpy as np
 
+
 class QLearningAgent:
-    def __init__(self, state_space_size, action_space_size, learning_rate=0.1, discount_factor=0.9, epsilon=0.1):
-        """
-        Inicializa o agente Q-Learning.
+    """Agente tabular com política epsilon-greedy e persistência em NPZ."""
 
-        Parâmetros:
-        - state_space_size: Tamanho do espaço de estados discretizado.
-        - action_space_size: Número de ações disponíveis para o agente.
-        - learning_rate (alpha): Taxa de aprendizado para atualização da Q-table.
-        - discount_factor (gamma): Fator de desconto para recompensas futuras.
-        - epsilon: Probabilidade de exploração (escolha de ação aleatória).
-        """
-        self.state_space_size = state_space_size
-        self.action_space_size = action_space_size
-        self.learning_rate = learning_rate  # alpha
-        self.discount_factor = discount_factor  # gamma
-        self.epsilon = epsilon
-        self.q_table = np.zeros((state_space_size, action_space_size))
+    def __init__(
+        self,
+        state_space_size: int,
+        action_space_size: int,
+        learning_rate: float = 0.1,
+        discount_factor: float = 0.95,
+        epsilon: float = 1.0,
+        epsilon_min: float = 0.05,
+        epsilon_decay: float = 0.995,
+        seed: int | None = None,
+    ) -> None:
+        if state_space_size <= 0 or action_space_size <= 0:
+            raise ValueError("os espaços de estados e ações devem ser positivos")
+        if not 0 < learning_rate <= 1:
+            raise ValueError("learning_rate deve pertencer ao intervalo (0, 1]")
+        if not 0 <= discount_factor <= 1:
+            raise ValueError("discount_factor deve pertencer ao intervalo [0, 1]")
+        if not 0 <= epsilon <= 1:
+            raise ValueError("epsilon deve pertencer ao intervalo [0, 1]")
+        if not 0 <= epsilon_min <= epsilon:
+            raise ValueError("epsilon_min deve pertencer ao intervalo [0, epsilon]")
+        if not 0 < epsilon_decay <= 1:
+            raise ValueError("epsilon_decay deve pertencer ao intervalo (0, 1]")
 
-    def discretize_state(self, buffer_occupancy, current_bitrate, buffer_levels, bitrate_levels):
-        """
-        Discretiza o estado contínuo do ambiente em um índice de estado para a Q-table.
-        A discretização deve ser adaptada com base nos ranges reais e granularidade desejada.
+        self.state_space_size = int(state_space_size)
+        self.action_space_size = int(action_space_size)
+        self.learning_rate = float(learning_rate)
+        self.discount_factor = float(discount_factor)
+        self.epsilon = float(epsilon)
+        self.epsilon_min = float(epsilon_min)
+        self.epsilon_decay = float(epsilon_decay)
+        self.seed = seed
+        self.rng = np.random.default_rng(seed)
+        self.q_table = np.zeros(
+            (self.state_space_size, self.action_space_size),
+            dtype=np.float64,
+        )
 
-        Parâmetros:
-        - buffer_occupancy: Ocupação atual do buffer (valor contínuo).
-        - current_bitrate: Bitrate atual da transmissão (valor contínuo).
-        - buffer_levels: Limiares para discretização da ocupação do buffer.
-        - bitrate_levels: Limiares para discretização do bitrate.
+    def _validate_state(self, state_index: int) -> None:
+        if not 0 <= state_index < self.state_space_size:
+            raise IndexError(f"estado fora da Q-table: {state_index}")
 
-        Retorna:
-        - state_index: Índice inteiro que representa o estado discretizado.
-        """
-        buffer_state = np.digitize(buffer_occupancy, buffer_levels) - 1
-        bitrate_state = np.digitize(current_bitrate, bitrate_levels) - 1
-        
-        buffer_state = max(0, min(buffer_state, len(buffer_levels) - 1))
-        bitrate_state = max(0, min(bitrate_state, len(bitrate_levels) - 1))
-        
-        num_bitrate_states = len(bitrate_levels)
-        state_index = buffer_state * num_bitrate_states + bitrate_state
-        return state_index
+    def choose_action(self, state_index: int, explore: bool = True) -> int:
+        """Seleciona uma ação e desempata valores Q máximos aleatoriamente."""
 
-    def choose_action(self, state_index):
-        """
-        Escolhe uma ação com base na política epsilon-greedy.
+        self._validate_state(state_index)
+        if explore and self.rng.random() < self.epsilon:
+            return int(self.rng.integers(self.action_space_size))
 
-        Parâmetros:
-        - state_index: Índice do estado atual.
+        values = self.q_table[state_index]
+        best_actions = np.flatnonzero(np.isclose(values, np.max(values)))
+        return int(self.rng.choice(best_actions))
 
-        Retorna:
-        - action: Ação escolhida (índice).
-        """
-        if np.random.uniform(0, 1) < self.epsilon:
-            action = np.random.randint(self.action_space_size)  # Exploração
-        else:
-            action = np.argmax(self.q_table[state_index, :])  # Explotação
-        return action
+    def update_q_table(
+        self,
+        current_state_index: int,
+        action: int,
+        reward: float,
+        next_state_index: int,
+        terminal: bool = False,
+    ) -> float:
+        """Aplica a atualização de Bellman e retorna o erro TD."""
 
-    def update_q_table(self, current_state_index, action, reward, next_state_index):
-        """
-        Atualiza a Q-table usando a equação de Bellman.
+        self._validate_state(current_state_index)
+        self._validate_state(next_state_index)
+        if not 0 <= action < self.action_space_size:
+            raise IndexError(f"ação fora da Q-table: {action}")
 
-        Parâmetros:
-        - current_state_index: Índice do estado anterior.
-        - action: Ação tomada.
-        - reward: Recompensa recebida.
-        - next_state_index: Índice do próximo estado.
-        """
-        best_next_action_value = np.max(self.q_table[next_state_index, :])
-        td_target = reward + self.discount_factor * best_next_action_value
+        future_value = 0.0 if terminal else float(np.max(self.q_table[next_state_index]))
+        td_target = float(reward) + self.discount_factor * future_value
         td_error = td_target - self.q_table[current_state_index, action]
         self.q_table[current_state_index, action] += self.learning_rate * td_error
+        return float(td_error)
 
-    def get_action_meaning(self, action):
-        """
-        Retorna o significado da ação escolhida.
+    def decay_epsilon(self) -> float:
+        self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+        return self.epsilon
 
-        Parâmetros:
-        - action: Índice da ação.
+    @staticmethod
+    def get_action_meaning(action: int) -> str:
+        meanings = ("decrease", "maintain", "increase")
+        if not 0 <= action < len(meanings):
+            raise ValueError(f"ação desconhecida: {action}")
+        return meanings[action]
 
-        Retorna:
-        - String descrevendo a ação (e.g., "decrease_bitrate").
-        """
-        if action == 0:
-            return "decrease_bitrate"
-        elif action == 1:
-            return "maintain_bitrate"
-        elif action == 2:
-            return "increase_bitrate"
-        else:
-            return "unknown_action"
+    def save(
+        self,
+        path: str | Path,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> Path:
+        """Salva Q-table, hiperparâmetros e metadados sem usar pickle."""
 
-# Bloco de integração: Como usar o QLearningAgent em um ambiente de streaming real.
-if __name__ == "__main__":
-    # 1. Definição do Espaço de Estados e Ações:
-    #    Baseado na descrição do TCC, o espaço de estados é uma combinação da ocupação do buffer
-    #    e do bitrate atual. O espaço de ações inclui diminuir, manter ou aumentar o bitrate.
-    
-    #    Exemplo de níveis de discretização (ajuste conforme o ambiente real):
-    num_buffer_levels = 10  # Número de níveis para a ocupação do buffer
-    num_bitrate_levels = 5  # Número de níveis para o bitrate
-    state_space_size = num_buffer_levels * num_bitrate_levels
-    action_space_size = 3  # 0: diminuir, 1: manter, 2: aumentar bitrate
+        destination = Path(path)
+        if destination.suffix != ".npz":
+            destination = destination.with_suffix(".npz")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(
+            destination,
+            q_table=self.q_table,
+            state_space_size=self.state_space_size,
+            action_space_size=self.action_space_size,
+            learning_rate=self.learning_rate,
+            discount_factor=self.discount_factor,
+            epsilon=self.epsilon,
+            epsilon_min=self.epsilon_min,
+            epsilon_decay=self.epsilon_decay,
+            seed=-1 if self.seed is None else self.seed,
+            metadata_json=json.dumps(metadata or {}, ensure_ascii=False, sort_keys=True),
+        )
+        return destination
 
-    #    Defina os limiares para discretização de buffer e bitrate.
-    #    Estes valores devem ser determinados experimentalmente ou com base nas especificações do sistema.
-    buffer_levels = np.linspace(0, 100, num_buffer_levels + 1)[1:] # Exemplo: 0-100% do buffer máximo
-    bitrate_levels = np.array([500, 1000, 2000, 4000, 8000]) # Exemplo: bitrates em kbps
+    @classmethod
+    def load(
+        cls,
+        path: str | Path,
+        seed: int | None = None,
+    ) -> tuple["QLearningAgent", dict[str, Any]]:
+        """Carrega um modelo e valida as dimensões declaradas."""
 
-    # 2. Inicialização do Agente:
-    agent = QLearningAgent(state_space_size, action_space_size,
-                           learning_rate=0.1, discount_factor=0.9, epsilon=0.1)
-
-    # 3. Loop de Treinamento/Operação em Tempo Real:
-    #    Este loop deve ser integrado ao sistema de streaming adaptativo.
-    #    A cada intervalo de tempo (e.g., a cada segmento de vídeo processado):
-    
-    #    a. Observar o estado atual do ambiente:
-    #       - current_buffer_occupancy: Obtenha a ocupação atual do buffer do reprodutor de vídeo.
-    #       - current_bitrate: Obtenha o bitrate atual da transmissão.
-    #       - reward: Calcule a recompensa com base na QoE observada (e.g., penalidade por rebuffering, recompensa por alta qualidade).
-    
-    #    b. Discretizar o estado observado:
-    #       current_state_index = agent.discretize_state(current_buffer_occupancy, current_bitrate, buffer_levels, bitrate_levels)
-    
-    #    c. Escolher uma ação:
-    #       action = agent.choose_action(current_state_index)
-    #       chosen_bitrate_action = agent.get_action_meaning(action)
-    
-    #    d. Aplicar a ação no ambiente de streaming:
-    #       - Modifique o bitrate da próxima requisição de segmento de vídeo com base em `chosen_bitrate_action`.
-    #       - Exemplo: Se `chosen_bitrate_action` for "increase_bitrate", selecione o próximo bitrate disponível mais alto.
-    
-    #    e. Observar o próximo estado e recompensa (após a aplicação da ação e avanço do tempo):
-    #       - next_buffer_occupancy, next_bitrate, next_reward = <obter do ambiente>
-    #       - next_state_index = agent.discretize_state(next_buffer_occupancy, next_bitrate, buffer_levels, bitrate_levels)
-    
-    #    f. Atualizar a Q-table do agente:
-    #       agent.update_q_table(current_state_index, action, reward, next_state_index)
-    
-    # 4. Persistência da Q-table:
-    #    Para que o agente "lembre" o que aprendeu, a Q-table deve ser salva e carregada.
-    #    Exemplo: np.save("q_table.npy", agent.q_table)
-    #    Exemplo: agent.q_table = np.load("q_table.npy")
-
-    print("QLearningAgent configurado. Integre este script ao seu ambiente de streaming adaptativo.")
-    print("Consulte os comentários no código para detalhes sobre os pontos de integração.")
+        with np.load(Path(path), allow_pickle=False) as data:
+            stored_seed = int(data["seed"])
+            agent = cls(
+                state_space_size=int(data["state_space_size"]),
+                action_space_size=int(data["action_space_size"]),
+                learning_rate=float(data["learning_rate"]),
+                discount_factor=float(data["discount_factor"]),
+                epsilon=float(data["epsilon"]),
+                epsilon_min=float(data["epsilon_min"]),
+                epsilon_decay=float(data["epsilon_decay"]),
+                seed=seed if seed is not None else (None if stored_seed < 0 else stored_seed),
+            )
+            q_table = np.asarray(data["q_table"], dtype=np.float64)
+            if q_table.shape != agent.q_table.shape:
+                raise ValueError(
+                    f"Q-table incompatível: {q_table.shape} != {agent.q_table.shape}"
+                )
+            agent.q_table = q_table.copy()
+            metadata = json.loads(str(data["metadata_json"].item()))
+        return agent, metadata

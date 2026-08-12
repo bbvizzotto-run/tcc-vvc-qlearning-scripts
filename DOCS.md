@@ -22,8 +22,23 @@ A arquitetura experimental prevê as seguintes versões de software, que deverã
 
 - **Codificador VVC (VVenC):** Versão v1.7.0 (Fraunhofer HHI).
 - **Simulador de Rede:** `tc/netem` integrado ao Kernel Linux 5.x ou superior.
-- **Python:** Versão 3.8+ (utilizado para o agente Q-Learning e scripts de métricas).
-- **NumPy:** Versão 1.19.0+ (para processamento de matrizes e Q-table).
+- **Python:** Versão 3.10+ (utilizado para o agente Q-Learning e scripts de métricas).
+- **NumPy:** Versão 1.24+ (para processamento de matrizes e Q-table).
+
+## Controlador Q-Learning Simulado
+
+Na segunda etapa, o agente é treinado no ambiente determinístico de segmentos. A configuração padrão utiliza:
+
+- 4 representações: 500, 1000, 2000 e 4000 kbps;
+- segmentos de 2 segundos;
+- buffer inicial de 4 segundos e máximo de 20 segundos;
+- 4000 episódios;
+- taxa de aprendizado 0,1 e fator de desconto 0,95;
+- epsilon inicial 1,0, mínimo 0,05 e decaimento 0,995;
+- estado formado por buffer, bitrate e throughput anterior;
+- três ações: diminuir, manter ou aumentar um nível.
+
+Os arquivos de modelo são artefatos derivados e devem ser reproduzidos pelo script `train_q_learning.py`. Cada modelo contém os hiperparâmetros e pesos da recompensa usados no treinamento.
 
 ## Parâmetros de Codificação (VVenC)
 

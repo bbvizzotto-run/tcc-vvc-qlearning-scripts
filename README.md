@@ -6,7 +6,7 @@ Este repositório contém scripts e materiais relacionados ao trabalho de conclu
 
 ## Status da Implementação
 
-O desenvolvimento está organizado em etapas verificáveis. A **Etapa 1** implementa um ambiente determinístico de streaming segmentado e a **Etapa 2** inicia o baseline por limiares estáticos. O agente Q-Learning existente ainda será integrado ao ambiente em uma etapa posterior.
+O desenvolvimento está organizado em etapas verificáveis. A **Etapa 1** implementa o ambiente determinístico e o baseline por limiares. A **Etapa 2** integra o treinamento, a persistência e a avaliação do controlador Q-Learning ao mesmo ambiente.
 
 | Componente | Estado atual |
 | :--- | :--- |
@@ -15,23 +15,66 @@ O desenvolvimento está organizado em etapas verificáveis. A **Etapa 1** implem
 | Controlador por limiares estáticos | Implementado |
 | Logs CSV e resumo JSON | Implementado |
 | Testes automatizados do simulador e baseline | Implementado |
-| Treinamento e avaliação do Q-Learning | Pendente |
+| Treinamento e avaliação do Q-Learning | Implementado |
+| Persistência da Q-table e metadados experimentais | Implementado |
+| Comparação automatizada com o baseline | Implementado |
 | Segmentos VVC reais e rede `tc/netem` | Pendente |
 
-### Execução do baseline
+### Instalação e testes
 
 Requer Python 3.10 ou superior. Na raiz do repositório, execute:
 
 ```bash
+python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
-python run_experiment.py \
-  --controller static \
+```
+
+### Treinamento do Q-Learning
+
+```bash
+python train_q_learning.py \
+  --trace bandwidth_traces/stable.csv \
   --trace bandwidth_traces/fluctuating.csv \
-  --output results/runs/static_fluctuating_seed42.csv \
+  --episodes 4000 \
+  --model models/q_learning.npz \
+  --history results/training/q_learning.csv \
   --seed 42
 ```
 
-O CSV contém uma linha por segmento. O arquivo `*.summary.json` registra as métricas agregadas e todos os parâmetros usados na execução.
+O arquivo NPZ armazena a Q-table, os hiperparâmetros e os metadados necessários para reconstruir o estado e a recompensa. Os modelos gerados não são versionados porque devem ser reproduzidos pelo comando acima.
+
+### Avaliação sem exploração
+
+```bash
+python run_experiment.py \
+  --controller q-learning \
+  --model models/q_learning.npz \
+  --trace bandwidth_traces/evaluation_challenging.csv \
+  --output results/runs/q_learning_challenging_seed42.csv \
+  --seed 42
+```
+
+Para executar o baseline no mesmo trace:
+
+```bash
+python run_experiment.py \
+  --controller static \
+  --trace bandwidth_traces/evaluation_challenging.csv \
+  --output results/runs/static_challenging_seed42.csv \
+  --seed 42
+```
+
+Ou gere diretamente uma tabela comparativa:
+
+```bash
+python compare_controllers.py \
+  --model models/q_learning.npz \
+  --trace bandwidth_traces/evaluation_challenging.csv \
+  --output results/comparisons/challenging.csv \
+  --seed 42
+```
+
+Cada execução produz dados por segmento em CSV e um arquivo `*.summary.json` com métricas agregadas e parâmetros.
 
 ## Objetivos
 
@@ -55,7 +98,7 @@ A metodologia fundamenta-se na construção progressiva de uma arquitetura exper
 6.  **Mecanismo de Feedback:** Fornece feedback contínuo ao agente de Q-Learning.
 7.  **Reprodutor de Vídeo:** Com suporte ao padrão VVC.
 
-O agente de IA opera em um modelo tabular, tomando decisões de ajuste de bitrate para maximizar uma função de recompensa que penaliza severamente eventos de *rebuffering* e situações de overflow.
+O agente opera em um modelo tabular e toma uma decisão por segmento. O estado contém ocupação do buffer, representação atual e throughput observado no segmento anterior. A largura de banda do segmento que será baixado não é apresentada ao agente antes da decisão.
 
 ## Detalhes Técnicos Adicionais
 
@@ -80,13 +123,28 @@ A arquitetura foi projetada para ser avaliada em diversos cenários de rede, sim
 
 ### Modelagem do Agente Q-Learning
 
-*   **Espaço de Estados:** Composto pela ocupação atual do buffer (discretizada em N níveis) e o bitrate atual da transmissão (M níveis).
+*   **Espaço de Estados:** Ocupação do buffer discretizada, bitrate atual e classe do throughput anterior. O primeiro segmento utiliza um estado exclusivo de throughput desconhecido.
 *   **Espaço de Ações:** {Diminuir Bitrate, Manter Bitrate, Aumentar Bitrate}.
-*   **Função de Recompensa:** Projetada para penalizar interrupções de reprodução (rebuffering) e recompensar a manutenção do buffer em uma zona de segurança técnica.
+*   **Política de Treinamento:** Epsilon-greedy com desempate aleatório e decaimento de epsilon por episódio.
+*   **Avaliação:** Política gulosa, sem exploração, utilizando trace separado dos traces de treinamento.
+
+A recompensa por segmento é:
+
+```text
+r = wq * qualidade
+    - wr * rebuffering_normalizado
+    - ws * troca_de_qualidade
+    - wb * déficit_do_buffer
+```
+
+Os valores padrão são `wq=1`, `wr=10`, `ws=0.25`, `wb=1` e buffer-alvo de 8 segundos. Todos são registrados no modelo e podem ser alterados pela interface de treinamento.
 
 ## Estrutura do Repositório
 
 *   `q_learning_agent.py`: Implementação do agente Q-Learning em Python.
+*   `q_learning_pipeline.py`: Estado, recompensa, treinamento e avaliação do agente.
+*   `train_q_learning.py`: Interface de treinamento e persistência da Q-table.
+*   `compare_controllers.py`: Comparação automatizada com o baseline.
 *   `streaming_env.py`: Ambiente de streaming segmentado e dinâmica do buffer.
 *   `controllers.py`: Controladores usados como baseline experimental.
 *   `experiment.py`: Orquestração, métricas agregadas e persistência dos resultados.
@@ -101,31 +159,11 @@ A arquitetura foi projetada para ser avaliada em diversos cenários de rede, sim
 *   `LICENSE`: Licença de uso do projeto (MIT).
 *   `README.md`: Este arquivo, descrevendo o projeto.
 
-## Integração e Uso do Agente Q-Learning
+## Separação entre treinamento e avaliação
 
-O script `q_learning_agent.py` implementa a lógica central do agente Q-Learning. Para integrá-lo e utilizá-lo em um ambiente de streaming VVC, siga as diretrizes abaixo:
+Os traces `stable.csv` e `fluctuating.csv` são usados no exemplo de treinamento. O trace `evaluation_challenging.csv` fica reservado para avaliação. Essa divisão evita avaliar a política somente nas mesmas sequências de rede usadas para atualizar a Q-table.
 
-1.  **Definição do Espaço de Estados e Ações:**
-    *   O espaço de estados é uma combinação da ocupação do buffer e do bitrate atual. O espaço de ações inclui diminuir, manter ou aumentar o bitrate.
-    *   Ajuste os parâmetros `num_buffer_levels` e `num_bitrate_levels` dentro do script `q_learning_agent.py` para definir a granularidade da discretização do estado.
-    *   Os `buffer_levels` e `bitrate_levels` devem ser configurados com base nos ranges reais e nas especificações do seu sistema de streaming.
-
-2.  **Inicialização do Agente:**
-    *   Instancie a classe `QLearningAgent` com os parâmetros apropriados para o seu ambiente (taxa de aprendizado, fator de desconto, epsilon).
-
-3.  **Loop de Treinamento/Operação em Tempo Real:**
-    *   Este é o ponto de integração principal com o seu sistema de streaming adaptativo.
-    *   A cada intervalo de tempo (e.g., a cada segmento de vídeo processado ou a cada segundo):
-        *   **Observação do Estado:** Obtenha a `current_buffer_occupancy` do reprodutor de vídeo e o `current_bitrate` da transmissão.
-        *   **Cálculo da Recompensa:** Determine a `reward` com base na QoE observada (e.g., penalidade por rebuffering, recompensa por alta qualidade, estabilidade do buffer).
-        *   **Discretização:** Use `agent.discretize_state()` para converter os valores contínuos em um `state_index`.
-        *   **Escolha da Ação:** Chame `agent.choose_action(current_state_index)` para obter a ação a ser tomada.
-        *   **Aplicação da Ação:** Traduza a `action` escolhida (e.g., `decrease_bitrate`, `maintain_bitrate`, `increase_bitrate`) em um comando para o seu sistema de streaming, ajustando o bitrate da próxima requisição de segmento de vídeo.
-        *   **Observação do Próximo Estado:** Após a aplicação da ação e o avanço do tempo, observe o `next_buffer_occupancy`, `next_bitrate` e `next_reward`.
-        *   **Atualização da Q-table:** Use `agent.update_q_table()` para atualizar a tabela de valores Q do agente.
-
-4.  **Persistência da Q-table:**
-    *   Para que o agente mantenha o conhecimento adquirido, a Q-table deve ser salva periodicamente (e.g., `np.save("q_table.npy", agent.q_table)`) e carregada ao iniciar (e.g., `agent.q_table = np.load("q_table.npy")`).
+Os resultados produzidos nesta etapa validam a integração do software, mas ainda não constituem uma avaliação científica completa. Essa avaliação exigirá múltiplos traces, diversas sementes, intervalos de confiança e representações VVC reais.
 
 ## Componentes Adicionais e Configuração (Opcional)
 

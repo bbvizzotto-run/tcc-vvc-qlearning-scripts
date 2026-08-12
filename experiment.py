@@ -10,6 +10,7 @@ from statistics import fmean, pstdev
 from typing import Sequence
 
 from controllers import StaticThresholdController
+from segment_manifest import SegmentManifest
 from streaming_env import StreamingConfig, StreamingEnvironment
 
 
@@ -49,6 +50,7 @@ def run_static_experiment(
     bandwidth_trace_kbps: Sequence[float],
     config: ExperimentConfig,
     segments: int | None = None,
+    segment_manifest: SegmentManifest | None = None,
 ) -> tuple[list[dict[str, object]], dict[str, object]]:
     if segments is not None and segments <= 0:
         raise ValueError("segments deve ser positivo")
@@ -58,6 +60,13 @@ def run_static_experiment(
         if segments > len(trace):
             raise ValueError("segments excede o número de amostras do trace")
         trace = trace[:segments]
+    if (
+        segment_manifest is not None
+        and tuple(config.bitrates_kbps) != segment_manifest.bitrates_kbps
+    ):
+        raise ValueError(
+            "a escada de bitrate da configuração difere do manifesto"
+        )
 
     environment = StreamingEnvironment(
         trace,
@@ -66,6 +75,7 @@ def run_static_experiment(
             startup_buffer_s=config.startup_buffer_s,
             max_buffer_s=config.max_buffer_s,
         ),
+        segment_manifest=segment_manifest,
     )
     controller = StaticThresholdController(
         config.bitrates_kbps,
@@ -84,14 +94,22 @@ def run_static_experiment(
     summary: dict[str, object] = environment.summary()
     bitrates = [float(row["bitrate_kbps"]) for row in rows]
     buffers = [float(row["buffer_after_s"]) for row in rows]
+    video_duration_s = float(summary["video_duration_s"])
+    payload_kbits = sum(float(row["segment_size_kbits"]) for row in rows)
     summary.update(
         {
             "controller": "static",
             "seed": config.seed,
             "average_bitrate_kbps": fmean(bitrates),
+            "average_payload_bitrate_kbps": payload_kbits / video_duration_s,
             "buffer_mean_s": fmean(buffers),
             "buffer_std_s": pstdev(buffers),
             "configuration": asdict(config),
+            "segment_manifest": (
+                segment_manifest.metadata()
+                if segment_manifest is not None
+                else None
+            ),
         }
     )
     return rows, summary

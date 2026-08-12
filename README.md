@@ -6,7 +6,7 @@ Este repositório contém scripts e materiais relacionados ao trabalho de conclu
 
 ## Status da Implementação
 
-O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico. A **Etapa 4** melhora a generalização a rajadas por randomização de domínio, sem treinar nos traces reservados para validação ou avaliação.
+O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico e a Etapa 4 melhora a generalização a rajadas. A **Etapa 5.1** adiciona o contrato e o suporte computacional para tamanhos e durações medidos em segmentos pré-codificados.
 
 | Componente | Estado atual |
 | :--- | :--- |
@@ -22,7 +22,9 @@ O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 impl
 | Análise pareada por trace e geral | Implementado |
 | Treinamento robusto com randomização de domínio | Implementado |
 | Validação independente de intensidade de rajadas | Implementado |
-| Segmentos VVC reais e rede `tc/netem` | Pendente |
+| Manifesto e simulação com tamanhos reais de segmentos | Implementado |
+| Geração de segmentos VVC reais | Pendente |
+| Rede `tc/netem` | Pendente |
 
 ### Instalação e testes
 
@@ -113,6 +115,21 @@ python run_generalization.py \
 
 O experimento avalia três controladores — baseline estático, Q-Learning original e Q-Learning robusto — em dois traces independentes de validação e nos três benchmarks congelados. A configuração moderada em `robust_protocol_config.json` foi escolhida na validação por reduzir rebuffering sem sacrificar bitrate frente ao baseline. Os detalhes e intervalos estão em `results/generalization_results.md`.
 
+### Tamanhos medidos de segmentos
+
+Quando `--segment-manifest` é informado, o simulador deixa de estimar o tamanho como `bitrate × duração` e usa `size_bytes` e `duration_s` registrados para cada par segmento–representação:
+
+```bash
+python run_experiment.py \
+  --controller static \
+  --trace bandwidth_traces/stable.csv \
+  --segment-manifest segment_manifests/example_segments.csv \
+  --segments 4 \
+  --output results/runs/manifest_example.csv
+```
+
+Sem esse argumento, o comportamento nominal anterior permanece inalterado. O exemplo versionado é sintético e serve somente para validar o formato e o fluxo. O contrato completo está em `segment_manifests/README.md`.
+
 ## Objetivos
 
 O objetivo geral deste projeto é desenvolver e avaliar metodologicamente uma arquitetura de controle adaptativo para streaming VVC, empregando o algoritmo Q-Learning para a gestão dinâmica da ocupação do buffer. Os objetivos específicos incluem:
@@ -190,6 +207,8 @@ Os valores padrão são `wq=1`, `wr=10`, `ws=0.25`, `wb=1` e buffer-alvo de 8 se
 *   `run_generalization.py`: Interface do experimento de generalização.
 *   `robust_protocol_config.json`: Configuração robusta selecionada na validação.
 *   `generalization_config.json`: Separação entre treino, validação e avaliação.
+*   `segment_manifest.py`: Leitura, validação e consulta dos segmentos medidos.
+*   `segment_manifests/`: Contrato CSV e manifesto ilustrativo.
 *   `streaming_env.py`: Ambiente de streaming segmentado e dinâmica do buffer.
 *   `controllers.py`: Controladores usados como baseline experimental.
 *   `experiment.py`: Orquestração, métricas agregadas e persistência dos resultados.
@@ -208,7 +227,7 @@ Os valores padrão são `wq=1`, `wr=10`, `ws=0.25`, `wb=1` e buffer-alvo de 8 se
 
 Os traces `stable.csv` e `fluctuating.csv` são as únicas fontes de treinamento. Suas variantes são geradas em memória e não copiam trechos dos demais conjuntos. `validation_bursty.csv` e `validation_mixed.csv` servem para escolher a intensidade da randomização. `evaluation_gradual.csv`, `evaluation_bursty.csv` e `evaluation_challenging.csv` permanecem reservados para a comparação final.
 
-O protocolo atual utiliza múltiplos traces, sementes, intervalos de confiança e separação em três conjuntos. Ainda faltam mais traces independentes, mais repetições e representações VVC reais antes de uma conclusão científica sobre o controlador.
+O protocolo atual utiliza múltiplos traces, sementes, intervalos de confiança e separação em três conjuntos. A infraestrutura já aceita tamanhos reais, mas o exemplo disponível ainda é sintético. Faltam gerar as representações VVC, medir seus segmentos e repetir o protocolo antes de uma conclusão científica sobre o controlador.
 
 ## Componentes Adicionais e Configuração (Opcional)
 

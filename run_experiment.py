@@ -13,6 +13,7 @@ from experiment import (
     save_results,
 )
 from q_learning_pipeline import components_from_model, run_q_learning_experiment
+from segment_manifest import load_segment_manifest
 
 
 def parse_bitrates(value: str) -> tuple[int, ...]:
@@ -37,6 +38,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--trace", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument(
+        "--segment-manifest",
+        type=Path,
+        help="CSV opcional com duração e tamanho medidos por representação",
+    )
+    parser.add_argument(
         "--model",
         type=Path,
         help="modelo NPZ obrigatório para o controlador q-learning",
@@ -55,6 +61,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = build_parser().parse_args()
     trace = load_bandwidth_trace(args.trace)
+    segment_manifest = (
+        load_segment_manifest(args.segment_manifest)
+        if args.segment_manifest is not None
+        else None
+    )
     if args.controller == "static":
         config = ExperimentConfig(
             bitrates_kbps=args.bitrates,
@@ -65,7 +76,12 @@ def main() -> int:
             high_buffer_s=args.high_buffer,
             seed=args.seed,
         )
-        rows, summary = run_static_experiment(trace, config, args.segments)
+        rows, summary = run_static_experiment(
+            trace,
+            config,
+            args.segments,
+            segment_manifest,
+        )
     else:
         if args.model is None:
             raise SystemExit("--model é obrigatório para --controller q-learning")
@@ -80,6 +96,7 @@ def main() -> int:
             encoder,
             reward_config,
             args.segments,
+            segment_manifest,
         )
     csv_path, summary_path = save_results(rows, summary, args.output)
 

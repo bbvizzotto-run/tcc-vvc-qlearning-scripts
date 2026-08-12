@@ -21,6 +21,7 @@ from experimental_protocol import (
     load_protocol_definition,
 )
 from q_learning_pipeline import StateEncoder, run_q_learning_experiment
+from segment_manifest import load_segment_manifest
 
 
 CONTROLLERS: tuple[str, ...] = (
@@ -50,6 +51,7 @@ class GeneralizationResult:
     raw_runs: list[dict[str, object]]
     paired_differences: list[dict[str, object]]
     training_summary: list[dict[str, object]]
+    metrics: tuple[str, ...]
     strategy_results: dict[str, ProtocolResult] = field(repr=False)
 
 
@@ -92,6 +94,8 @@ def _validate_definition(definition: GeneralizationDefinition) -> None:
         raise ValueError("somente a randomização de domínio pode diferir no treino")
     if standard.reward_config != robust.reward_config:
         raise ValueError("as estratégias devem usar a mesma recompensa")
+    if standard.segment_manifest_path != robust.segment_manifest_path:
+        raise ValueError("as estratégias devem usar o mesmo manifesto de segmentos")
     if standard.trace_augmentation is not None:
         raise ValueError("o protocolo original não pode usar aumento de traces")
     if robust.trace_augmentation is None:
@@ -121,6 +125,7 @@ def _metric_row(
     trace: str,
     controller: str,
     summary: Mapping[str, object],
+    metrics: Sequence[str] = METRICS,
 ) -> dict[str, object]:
     return {
         "dataset": dataset,
@@ -128,7 +133,7 @@ def _metric_row(
         "policy_seed": policy_seed,
         "trace": trace,
         "controller": controller,
-        **{metric: float(summary[metric]) for metric in METRICS},
+        **{metric: float(summary[metric]) for metric in metrics},
     }
 
 
@@ -167,6 +172,7 @@ def _validation_rows(
     definition: GeneralizationDefinition,
     standard: ProtocolResult,
     robust: ProtocolResult,
+    metrics: Sequence[str] = METRICS,
 ) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     traces = [
@@ -174,6 +180,11 @@ def _validation_rows(
         for path in definition.validation_trace_paths
     ]
     protocol = definition.standard_protocol
+    segment_manifest = (
+        load_segment_manifest(protocol.segment_manifest_path)
+        if protocol.segment_manifest_path is not None
+        else None
+    )
     encoder = StateEncoder(
         protocol.experiment_config.bitrates_kbps,
         protocol.training_config.buffer_boundaries_s,
@@ -182,7 +193,11 @@ def _validation_rows(
     for seed in protocol.seeds:
         config: ExperimentConfig = replace(protocol.experiment_config, seed=seed)
         for trace_index, (trace_name, trace) in enumerate(traces):
-            _, static_summary = run_static_experiment(trace, config)
+            _, static_summary = run_static_experiment(
+                trace,
+                config,
+                segment_manifest=segment_manifest,
+            )
             rows.append(
                 _metric_row(
                     "validation",
@@ -191,6 +206,7 @@ def _validation_rows(
                     trace_name,
                     "static",
                     static_summary,
+                    metrics,
                 )
             )
             policy_seed = seed * 1009 + 100 + trace_index
@@ -205,6 +221,7 @@ def _validation_rows(
                     agent,
                     encoder,
                     protocol.reward_config,
+                    segment_manifest=segment_manifest,
                 )
                 rows.append(
                     _metric_row(
@@ -214,6 +231,7 @@ def _validation_rows(
                         trace_name,
                         f"q-learning-{strategy_name}",
                         summary,
+                        metrics,
                     )
                 )
     return rows
@@ -222,6 +240,7 @@ def _validation_rows(
 def _paired_differences(
     raw_runs: Sequence[dict[str, object]],
     seeds: Sequence[int],
+    metrics: Sequence[str] = METRICS,
 ) -> list[dict[str, object]]:
     grouped: dict[
         tuple[str, int, str],
@@ -244,7 +263,7 @@ def _paired_differences(
                 f"comparação incompleta: dataset={dataset}, seed={seed}, trace={trace}"
             )
         for comparison, (left, right) in COMPARISONS.items():
-            for metric in METRICS:
+            for metric in metrics:
                 deltas[(dataset, seed, trace, comparison, metric)] = (
                     float(controllers[left][metric])
                     - float(controllers[right][metric])
@@ -285,7 +304,7 @@ def _paired_differences(
     for dataset, traces in traces_by_dataset.items():
         for trace in traces:
             for comparison in COMPARISONS:
-                for metric in METRICS:
+                for metric in metrics:
                     append_row(
                         dataset,
                         "per_trace",
@@ -298,7 +317,7 @@ def _paired_differences(
                         ],
                     )
         for comparison in COMPARISONS:
-            for metric in METRICS:
+            for metric in metrics:
                 per_seed_means = [
                     fmean(
                         deltas[(dataset, seed, trace, comparison, metric)]
@@ -323,8 +342,11 @@ def execute_generalization_experiment(
     _validate_definition(definition)
     standard = execute_protocol(definition.standard_protocol)
     robust = execute_protocol(definition.robust_protocol)
+    if standard.metrics != robust.metrics:
+        raise ValueError("as estratégias produziram conjuntos de métricas diferentes")
+    metrics = standard.metrics
     raw_runs = _evaluation_rows(standard, robust)
-    raw_runs.extend(_validation_rows(definition, standard, robust))
+    raw_runs.extend(_validation_rows(definition, standard, robust, metrics))
     training_summary = [
         {"strategy": strategy, **row}
         for strategy, result in (("standard", standard), ("robust", robust))
@@ -335,8 +357,10 @@ def execute_generalization_experiment(
         paired_differences=_paired_differences(
             raw_runs,
             definition.standard_protocol.seeds,
+            metrics,
         ),
         training_summary=training_summary,
+        metrics=metrics,
         strategy_results={"standard": standard, "robust": robust},
     )
 
@@ -383,6 +407,11 @@ def save_generalization_result(
 
     standard = definition.standard_protocol
     robust = definition.robust_protocol
+    segment_manifest = (
+        load_segment_manifest(standard.segment_manifest_path)
+        if standard.segment_manifest_path is not None
+        else None
+    )
     manifest: dict[str, Any] = {
         "experiment_version": definition.experiment_version,
         "confidence_level": standard.confidence_level,
@@ -391,6 +420,7 @@ def save_generalization_result(
             "average traces within each seed, then compute CI across seeds"
         ),
         "comparisons": dict(COMPARISONS),
+        "metrics": list(result.metrics),
         "seeds": list(standard.seeds),
         "training_traces": [path.name for path in standard.training_trace_paths],
         "validation_traces": [
@@ -405,6 +435,11 @@ def save_generalization_result(
         "training_config": asdict(standard.training_config),
         "reward_config": asdict(standard.reward_config),
         "robust_trace_augmentation": asdict(robust.trace_augmentation),
+        "segment_manifest": (
+            segment_manifest.metadata()
+            if segment_manifest is not None
+            else None
+        ),
         "models": model_paths,
     }
     paths["manifest"].parent.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,111 @@
+{
+  "better_when": {
+    "average_bitrate_kbps": "higher",
+    "average_payload_bitrate_kbps": "higher",
+    "buffer_mean_s": "descriptive",
+    "buffer_std_s": "lower",
+    "rebuffering_rate_percent": "lower",
+    "rebuffering_s": "lower",
+    "startup_delay_s": "lower"
+  },
+  "confidence_level": 0.95,
+  "confidence_method": "two-sided Student t interval for the mean",
+  "delta_definition": "q-learning_minus_static",
+  "evaluation_traces": [
+    {
+      "bandwidth_scale": 10.0,
+      "path": "evaluation_gradual.csv"
+    },
+    {
+      "bandwidth_scale": 10.0,
+      "path": "evaluation_bursty.csv"
+    },
+    {
+      "bandwidth_scale": 10.0,
+      "path": "evaluation_challenging.csv"
+    }
+  ],
+  "experiment_config": {
+    "bitrates_kbps": [
+      10026,
+      58015
+    ],
+    "high_buffer_s": 10.0,
+    "low_buffer_s": 4.0,
+    "max_buffer_s": 20.0,
+    "seed": 11,
+    "segment_duration_s": 0.65,
+    "startup_buffer_s": 4.0
+  },
+  "metrics": [
+    "startup_delay_s",
+    "rebuffering_s",
+    "rebuffering_rate_percent",
+    "average_bitrate_kbps",
+    "buffer_mean_s",
+    "buffer_std_s",
+    "average_payload_bitrate_kbps"
+  ],
+  "models": {
+    "11": "models/q_learning_seed_11.npz",
+    "23": "models/q_learning_seed_23.npz",
+    "37": "models/q_learning_seed_37.npz",
+    "53": "models/q_learning_seed_53.npz",
+    "71": "models/q_learning_seed_71.npz"
+  },
+  "overall_method": "average evaluation traces within each seed, then compute CI across seeds",
+  "protocol_version": 2,
+  "reward_config": {
+    "low_buffer_weight": 2.0,
+    "quality_weight": 1.0,
+    "rebuffering_weight": 10.0,
+    "switch_weight": 0.25,
+    "target_buffer_s": 8.0
+  },
+  "seeds": [
+    11,
+    23,
+    37,
+    53,
+    71
+  ],
+  "segment_manifest": {
+    "bitrates_kbps": [
+      10026,
+      58015
+    ],
+    "manifest_sha256": "c529b3942939da3a71d94832fa71b572f5b31a843dd3481b739de57145b33fa7",
+    "segment_count": 63,
+    "sequence": "DVB_VVC_UHD1_HFR",
+    "size_unit": "bytes",
+    "source": "dvb_vvc_uhd1_hfr.csv"
+  },
+  "trace_augmentation": null,
+  "training_config": {
+    "buffer_boundaries_s": [
+      2.0,
+      4.0,
+      6.0,
+      8.0,
+      12.0,
+      16.0
+    ],
+    "discount_factor": 0.95,
+    "episodes": 4000,
+    "epsilon_decay": 0.995,
+    "epsilon_min": 0.05,
+    "epsilon_start": 1.0,
+    "learning_rate": 0.1,
+    "seed": 11
+  },
+  "training_traces": [
+    {
+      "bandwidth_scale": 10.0,
+      "path": "stable.csv"
+    },
+    {
+      "bandwidth_scale": 10.0,
+      "path": "fluctuating.csv"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "stage": "5.3b",
+  "execution_policy": "single frozen evaluation after validation-only selection",
+  "execution_count": 1,
+  "executed_at_utc": "2026-08-12T19:53:12Z",
+  "base_main_commit": "66d52c3bf5710162d3ee08ddd81aca31d5933093",
+  "command": "python run_protocol.py --config dvb_uhd1_hfr_selected_protocol_config.json --output-dir results/dvb_uhd1_hfr_selected_final",
+  "selected_candidate_id": "wr10_wb2",
+  "selected_config_git_blob": "8116a8f7875e8de151dc9f16c92998f9c3b28f6f",
+  "inputs_sha256": {
+    "dvb_uhd1_hfr_selected_protocol_config.json": "f269dc48fd06a4de396602363b1d915ca88d94b286bd4a9504e43bac7c9a49e1",
+    "dvb_reward_tuning_config.json": "0dfbf67155c6c4bdcdedd862e6f6cd93df12bb7729c6046181d169c9ad248c4d",
+    "bandwidth_traces/evaluation_gradual.csv": "9acd398da2fe5b7fd2529f0516ffd634880c91af153bd35ba1ce95074d50d2a7",
+    "bandwidth_traces/evaluation_bursty.csv": "3d01d79a10f5c5c2210f610f60854af9a06adb3b8625fb7ceb08bd01e5fa65c8",
+    "bandwidth_traces/evaluation_challenging.csv": "9153ee7c8024d3b08c016ccec3a80f0b5d9d282750d08fb4c9bdbda2637dfd72"
+  },
+  "outputs_sha256": {
+    "aggregate.csv": "42fad66683b95b5e29211e0c751954473036fded4222b70febc720cc363cf620",
+    "paired_differences.csv": "e39fedbdbe045dc7f2274bdaf8ad0851c167d2e8f2f1ec4f84edf23d0b30ad7f",
+    "raw_runs.csv": "404f83a9f0fd42b75a33e5ce9849775f07e3971dfab0539e1d48432e0935f2cc",
+    "training_summary.csv": "9be54416b7466931579ca4c6c364b0519153f089e1100dc1622bb8f4392da3f9",
+    "manifest.json": "6a650e8f1f1073350dcf378cfae35a46dba18a5dbf8b6946ada485f82df5b18f"
+  },
+  "evaluation_runs": 30,
+  "training_runs": 5,
+  "post_evaluation_reward_changes": false,
+  "models_versioned": false
+}

@@ -140,6 +140,24 @@ Os traces originais variam de 300 a 5.200 kbps, enquanto a menor representação
 
 PSNR-Y não é inferido. Sem o master YUV exato usado na produção do pacote, não existe referência válida para essa medição. Assim, a vertente DVB é usada para realismo de entrega e comportamento ABR; a vertente VVenC permanece responsável por controle de codificação e comparação objetiva com a fonte.
 
+## Ajuste da Recompensa DVB — Etapa 5.3a
+
+O ajuste varia somente `rebuffering_weight` em {10, 20, 30} e `low_buffer_weight` em {1, 2}. `quality_weight=1`, `switch_weight=0,25` e o buffer-alvo de 8 s permanecem fixos. Cada um dos seis candidatos usa as mesmas cinco sementes e 4000 episódios do protocolo DVB.
+
+Treino, seleção e avaliação permanecem separados:
+
+- treino: `stable.csv` e `fluctuating.csv`, ambos com fator 10;
+- validação: `validation_bursty.csv` e `validation_mixed.csv`, ambos com fator 10;
+- avaliação congelada: `evaluation_gradual.csv`, `evaluation_bursty.csv` e `evaluation_challenging.csv`.
+
+O código de ajuste não abre os traces de avaliação. Um teste automatizado substitui o carregador por uma guarda que falha caso o caminho reservado seja acessado. Os nomes desses arquivos aparecem no manifesto apenas para auditar a separação experimental.
+
+A unidade amostral é a semente. Primeiro se calcula, dentro de cada semente, a média das diferenças entre os dois traces de validação; depois se obtém o IC95% bilateral entre as cinco sementes. A regra pré-declarada considera elegível um candidato quando o limite superior do IC95% de `Q-Learning - Estático` para taxa de rebuffering é menor ou igual a zero. Entre elegíveis, o desempate primário maximiza a diferença média de bitrate útil.
+
+O candidato `wr10_wb2` foi selecionado. Seus pesos são `(wq, wr, ws, wb) = (1, 10, 0,25, 2)`. Ele igualou o baseline em rebuffering e bitrate útil na validação. Os candidatos com `wb=1` selecionaram mais bitrate, mas o limite superior do IC95% da taxa de rebuffering ficou entre 23,34 e 24,71 pontos percentuais, portanto falharam na não inferioridade. A configuração segura não demonstrou ganho de QoE; sua utilidade nesta etapa é impedir a degradação observada no resultado preliminar.
+
+`results/dvb_reward_tuning/manifest.json` registra a grade, a regra, os traces, os pesos escolhidos e a proteção contra vazamento. `dvb_uhd1_hfr_selected_protocol_config.json` é a entrada congelada para a Etapa 5.3b. Nenhuma métrica dos três traces finais foi consultada para essa escolha.
+
 ## Parâmetros de Codificação (VVenC)
 
 Para os experimentos, o VVenC é configurado com os seguintes parâmetros base:

@@ -6,7 +6,7 @@ Este repositório contém scripts e materiais relacionados ao trabalho de conclu
 
 ## Status da Implementação
 
-O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico, a Etapa 4 melhora a generalização a rajadas e a Etapa 5.1 conecta tamanhos medidos ao simulador. A **Etapa 5.2** automatiza a codificação controlada com VVenC e a **Etapa 5.2b** importa pacotes DVB-DASH VVC reais.
+O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico, a Etapa 4 melhora a generalização a rajadas e a Etapa 5.1 conecta tamanhos medidos ao simulador. A **Etapa 5.2** automatiza a codificação controlada com VVenC, a **Etapa 5.2b** importa pacotes DVB-DASH VVC reais e a **Etapa 5.3a** seleciona pesos da recompensa sem vazamento da avaliação.
 
 | Componente | Estado atual |
 | :--- | :--- |
@@ -27,6 +27,8 @@ O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 impl
 | Importador de MPD, segmentos e byte ranges DVB-DASH | Implementado |
 | Proveniência, licença e configuração de protocolo DVB | Implementado |
 | Dataset DVB-DASH UHD1 HFR e manifesto medido | Implementado |
+| Ajuste controlado da recompensa apenas em validação | Implementado |
+| Avaliação final da recompensa selecionada | Pendente (Etapa 5.3b) |
 | Dataset VVC real e resultados completos | Pendente de execução com as fontes YUV |
 | Rede `tc/netem` | Pendente |
 
@@ -209,6 +211,21 @@ python run_protocol.py \
 
 A execução congelada do pacote UHD1 HFR está em `results/dvb_uhd1_hfr/`. O resultado inicial mostra um compromisso: o Q-Learning escolhe bitrate maior, mas também produz mais rebuffering que o baseline. Esse achado é preservado como baseline da política anterior e orienta a próxima etapa de recalibração da recompensa.
 
+### Ajuste da recompensa DVB sem vazamento
+
+A Etapa 5.3a compara uma grade declarada de seis candidatos usando somente `stable.csv` e `fluctuating.csv` no treinamento e `validation_bursty.csv` e `validation_mixed.csv` na seleção. As cinco sementes, 4000 episódios, ambiente, manifesto e demais hiperparâmetros permanecem constantes:
+
+```bash
+python run_reward_tuning.py \
+  --config dvb_reward_tuning_config.json \
+  --output-dir results/dvb_reward_tuning \
+  --selected-protocol dvb_uhd1_hfr_selected_protocol_config.json
+```
+
+A regra exige que o limite superior do IC95% da diferença pareada `Q-Learning - Estático` na taxa de rebuffering seja menor ou igual a zero. Entre candidatos elegíveis, maximiza-se o bitrate útil médio; se nenhum for elegível, minimiza-se o limite superior de rebuffering. A seleção escolheu `wr10_wb2`, que mantém `rebuffering_weight=10` e aumenta `low_buffer_weight` de 1 para 2.
+
+Na validação, a política escolhida igualou o baseline em todas as métricas, enquanto os candidatos com `low_buffer_weight=1` aumentaram o bitrate, mas falharam no critério de rebuffering. Esse resultado conservador é preservado em `results/dvb_reward_tuning/`; não se afirma ganho de QoE. O script apenas registra os nomes dos traces finais e não os carrega. A configuração selecionada permanece congelada em `dvb_uhd1_hfr_selected_protocol_config.json` para uma única avaliação na Etapa 5.3b.
+
 ## Objetivos
 
 O objetivo geral deste projeto é desenvolver e avaliar metodologicamente uma arquitetura de controle adaptativo para streaming VVC, empregando o algoritmo Q-Learning para a gestão dinâmica da ocupação do buffer. Os objetivos específicos incluem:
@@ -294,6 +311,10 @@ Os valores padrão são `wq=1`, `wr=10`, `ws=0.25`, `wb=1` e buffer-alvo de 8 se
 *   `dvb_dash_importer.py`: Leitura do MPD, medição de segmentos/byte ranges e proveniência DVB.
 *   `import_dvb_dash.py`: Interface de linha de comando da Etapa 5.2b.
 *   `dvb_uhd1_hfr_protocol_config.json`: Protocolo de duas representações com traces escalados.
+*   `reward_tuning.py`: Ajuste multi-semente da recompensa somente em validação.
+*   `run_reward_tuning.py`: Interface da seleção de pesos da Etapa 5.3a.
+*   `dvb_reward_tuning_config.json`: Grade e regra de não inferioridade congeladas.
+*   `dvb_uhd1_hfr_selected_protocol_config.json`: Recompensa selecionada, ainda não executada na avaliação final.
 *   `streaming_env.py`: Ambiente de streaming segmentado e dinâmica do buffer.
 *   `controllers.py`: Controladores usados como baseline experimental.
 *   `experiment.py`: Orquestração, métricas agregadas e persistência dos resultados.
@@ -312,7 +333,7 @@ Os valores padrão são `wq=1`, `wr=10`, `ws=0.25`, `wb=1` e buffer-alvo de 8 se
 
 Os traces `stable.csv` e `fluctuating.csv` são as únicas fontes de treinamento. Suas variantes são geradas em memória e não copiam trechos dos demais conjuntos. `validation_bursty.csv` e `validation_mixed.csv` servem para escolher a intensidade da randomização. `evaluation_gradual.csv`, `evaluation_bursty.csv` e `evaluation_challenging.csv` permanecem reservados para a comparação final.
 
-O protocolo atual utiliza múltiplos traces, sementes, intervalos de confiança e separação em três conjuntos. A infraestrutura já gera e aceita manifestos medidos, mas nenhum resultado real é versionado enquanto o pipeline não for executado sobre as fontes YUV declaradas. Ainda é necessário produzir o dataset de segmentos e repetir o protocolo antes de uma conclusão científica sobre o controlador.
+O protocolo atual utiliza múltiplos traces, sementes, intervalos de confiança e separação em três conjuntos. A vertente DVB já contém um manifesto e resultados reais de entrega; a vertente VVenC controlada ainda depende das fontes YUV declaradas. A configuração recalibrada deve ser avaliada uma única vez nos benchmarks congelados antes de qualquer conclusão científica sobre sua generalização.
 
 ## Componentes Adicionais e Configuração (Opcional)
 

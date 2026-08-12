@@ -1,0 +1,164 @@
+{
+  "base_protocol": "dvb_uhd1_hfr_protocol_config.json",
+  "candidates": [
+    {
+      "id": "wr10_wb1",
+      "reward_config": {
+        "low_buffer_weight": 1.0,
+        "quality_weight": 1.0,
+        "rebuffering_weight": 10.0,
+        "switch_weight": 0.25,
+        "target_buffer_s": 8.0
+      }
+    },
+    {
+      "id": "wr10_wb2",
+      "reward_config": {
+        "low_buffer_weight": 2.0,
+        "quality_weight": 1.0,
+        "rebuffering_weight": 10.0,
+        "switch_weight": 0.25,
+        "target_buffer_s": 8.0
+      }
+    },
+    {
+      "id": "wr20_wb1",
+      "reward_config": {
+        "low_buffer_weight": 1.0,
+        "quality_weight": 1.0,
+        "rebuffering_weight": 20.0,
+        "switch_weight": 0.25,
+        "target_buffer_s": 8.0
+      }
+    },
+    {
+      "id": "wr20_wb2",
+      "reward_config": {
+        "low_buffer_weight": 2.0,
+        "quality_weight": 1.0,
+        "rebuffering_weight": 20.0,
+        "switch_weight": 0.25,
+        "target_buffer_s": 8.0
+      }
+    },
+    {
+      "id": "wr30_wb1",
+      "reward_config": {
+        "low_buffer_weight": 1.0,
+        "quality_weight": 1.0,
+        "rebuffering_weight": 30.0,
+        "switch_weight": 0.25,
+        "target_buffer_s": 8.0
+      }
+    },
+    {
+      "id": "wr30_wb2",
+      "reward_config": {
+        "low_buffer_weight": 2.0,
+        "quality_weight": 1.0,
+        "rebuffering_weight": 30.0,
+        "switch_weight": 0.25,
+        "target_buffer_s": 8.0
+      }
+    }
+  ],
+  "confidence_level": 0.95,
+  "confidence_method": "two-sided Student t interval for the paired mean",
+  "evaluation_leakage_guard": "execute_reward_tuning loads training and validation traces only; evaluation trace paths are recorded but never opened or executed",
+  "evaluation_traces_frozen": [
+    "evaluation_gradual.csv",
+    "evaluation_bursty.csv",
+    "evaluation_challenging.csv"
+  ],
+  "experiment_config": {
+    "bitrates_kbps": [
+      10026,
+      58015
+    ],
+    "high_buffer_s": 10.0,
+    "low_buffer_s": 4.0,
+    "max_buffer_s": 20.0,
+    "seed": 11,
+    "segment_duration_s": 0.65,
+    "startup_buffer_s": 4.0
+  },
+  "metrics": [
+    "startup_delay_s",
+    "rebuffering_s",
+    "rebuffering_rate_percent",
+    "average_bitrate_kbps",
+    "buffer_mean_s",
+    "buffer_std_s",
+    "average_payload_bitrate_kbps"
+  ],
+  "noninferiority_margin_percent": 0.0,
+  "overall_method": "average validation traces within seed, then CI across seeds",
+  "primary_metric": "rebuffering_rate_percent",
+  "secondary_metric": "average_payload_bitrate_kbps",
+  "seeds": [
+    11,
+    23,
+    37,
+    53,
+    71
+  ],
+  "segment_manifest": {
+    "bitrates_kbps": [
+      10026,
+      58015
+    ],
+    "manifest_sha256": "c529b3942939da3a71d94832fa71b572f5b31a843dd3481b739de57145b33fa7",
+    "segment_count": 63,
+    "sequence": "DVB_VVC_UHD1_HFR",
+    "size_unit": "bytes",
+    "source": "dvb_vvc_uhd1_hfr.csv"
+  },
+  "selected_candidate_id": "wr10_wb2",
+  "selected_reward_config": {
+    "low_buffer_weight": 2.0,
+    "quality_weight": 1.0,
+    "rebuffering_weight": 10.0,
+    "switch_weight": 0.25,
+    "target_buffer_s": 8.0
+  },
+  "selection_method": "require the upper bound of the paired 95% CI for Q-Learning minus static rebuffering rate to be at most the non-inferiority margin; among eligible candidates maximize mean paired payload bitrate; if none is eligible, minimize that rebuffering upper bound",
+  "selection_mode": "eligible_max_payload",
+  "training_config": {
+    "buffer_boundaries_s": [
+      2.0,
+      4.0,
+      6.0,
+      8.0,
+      12.0,
+      16.0
+    ],
+    "discount_factor": 0.95,
+    "episodes": 4000,
+    "epsilon_decay": 0.995,
+    "epsilon_min": 0.05,
+    "epsilon_start": 1.0,
+    "learning_rate": 0.1,
+    "seed": 11
+  },
+  "training_traces": [
+    {
+      "bandwidth_scale": 10.0,
+      "path": "stable.csv"
+    },
+    {
+      "bandwidth_scale": 10.0,
+      "path": "fluctuating.csv"
+    }
+  ],
+  "tuning_version": 1,
+  "validation_traces": [
+    {
+      "bandwidth_scale": 10.0,
+      "path": "validation_bursty.csv"
+    },
+    {
+      "bandwidth_scale": 10.0,
+      "path": "validation_mixed.csv"
+    }
+  ]
+}

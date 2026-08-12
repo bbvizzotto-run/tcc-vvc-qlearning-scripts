@@ -12,6 +12,7 @@ from typing import Sequence
 
 from experiment import ExperimentConfig
 from q_learning_agent import QLearningAgent
+from segment_manifest import SegmentManifest
 from streaming_env import SegmentResult, StreamingConfig, StreamingEnvironment
 from trace_augmentation import TraceAugmentationConfig, augment_bandwidth_trace
 
@@ -248,6 +249,7 @@ def calculate_reward(
 def _environment(
     trace: Sequence[float],
     config: ExperimentConfig,
+    segment_manifest: SegmentManifest | None = None,
 ) -> StreamingEnvironment:
     return StreamingEnvironment(
         trace,
@@ -256,6 +258,7 @@ def _environment(
             startup_buffer_s=config.startup_buffer_s,
             max_buffer_s=config.max_buffer_s,
         ),
+        segment_manifest=segment_manifest,
     )
 
 
@@ -265,6 +268,7 @@ def train_q_learning(
     training_config: TrainingConfig,
     reward_config: RewardConfig,
     trace_augmentation: TraceAugmentationConfig | None = None,
+    segment_manifest: SegmentManifest | None = None,
 ) -> tuple[QLearningAgent, StateEncoder, list[dict[str, object]], dict[str, object]]:
     if not named_traces:
         raise ValueError("forneça ao menos um trace de treinamento")
@@ -272,6 +276,14 @@ def train_q_learning(
         raise ValueError("os traces de treinamento não podem ser vazios")
     if reward_config.target_buffer_s > experiment_config.max_buffer_s:
         raise ValueError("o buffer-alvo não pode exceder o buffer máximo")
+    if (
+        segment_manifest is not None
+        and tuple(experiment_config.bitrates_kbps)
+        != segment_manifest.bitrates_kbps
+    ):
+        raise ValueError(
+            "a escada de bitrate da configuração difere do manifesto"
+        )
 
     encoder = StateEncoder(
         experiment_config.bitrates_kbps,
@@ -303,7 +315,7 @@ def train_q_learning(
                 augmentation_seed,
             )
             augmented = trace != list(base_trace)
-        environment = _environment(trace, experiment_config)
+        environment = _environment(trace, experiment_config, segment_manifest)
         controller.reset()
         total_reward = 0.0
         total_td_error = 0.0
@@ -317,7 +329,7 @@ def train_q_learning(
                 previous_bitrate_kbps=decision.previous_bitrate_kbps,
                 min_bitrate_kbps=encoder.bitrates_kbps[0],
                 max_bitrate_kbps=encoder.bitrates_kbps[-1],
-                segment_duration_s=experiment_config.segment_duration_s,
+                segment_duration_s=result.segment_duration_s,
                 config=reward_config,
             )
             next_state = controller.current_state(environment.buffer_s)
@@ -365,6 +377,11 @@ def train_q_learning(
         "trace_augmentation": (
             asdict(trace_augmentation) if trace_augmentation is not None else None
         ),
+        "segment_manifest": (
+            segment_manifest.metadata()
+            if segment_manifest is not None
+            else None
+        ),
     }
     return agent, encoder, history, metadata
 
@@ -376,6 +393,7 @@ def run_q_learning_experiment(
     encoder: StateEncoder,
     reward_config: RewardConfig,
     segments: int | None = None,
+    segment_manifest: SegmentManifest | None = None,
 ) -> tuple[list[dict[str, object]], dict[str, object]]:
     trace = list(bandwidth_trace_kbps)
     if segments is not None:
@@ -386,8 +404,13 @@ def run_q_learning_experiment(
         trace = trace[:segments]
     if tuple(experiment_config.bitrates_kbps) != encoder.bitrates_kbps:
         raise ValueError("a escada de bitrate não corresponde ao modelo")
+    if (
+        segment_manifest is not None
+        and encoder.bitrates_kbps != segment_manifest.bitrates_kbps
+    ):
+        raise ValueError("a escada de bitrate do modelo difere do manifesto")
 
-    environment = _environment(trace, experiment_config)
+    environment = _environment(trace, experiment_config, segment_manifest)
     controller = QLearningController(agent, encoder)
     rows: list[dict[str, object]] = []
     total_reward = 0.0
@@ -401,7 +424,7 @@ def run_q_learning_experiment(
             previous_bitrate_kbps=decision.previous_bitrate_kbps,
             min_bitrate_kbps=encoder.bitrates_kbps[0],
             max_bitrate_kbps=encoder.bitrates_kbps[-1],
-            segment_duration_s=experiment_config.segment_duration_s,
+            segment_duration_s=result.segment_duration_s,
             config=reward_config,
         )
         total_reward += reward.reward
@@ -419,6 +442,8 @@ def run_q_learning_experiment(
     summary: dict[str, object] = environment.summary()
     bitrates = [float(row["bitrate_kbps"]) for row in rows]
     buffers = [float(row["buffer_after_s"]) for row in rows]
+    video_duration_s = float(summary["video_duration_s"])
+    payload_kbits = sum(float(row["segment_size_kbits"]) for row in rows)
     summary.update(
         {
             "controller": "q-learning",
@@ -426,9 +451,15 @@ def run_q_learning_experiment(
             "total_reward": total_reward,
             "mean_reward": total_reward / len(rows),
             "average_bitrate_kbps": fmean(bitrates),
+            "average_payload_bitrate_kbps": payload_kbits / video_duration_s,
             "buffer_mean_s": fmean(buffers),
             "buffer_std_s": pstdev(buffers),
             "configuration": asdict(experiment_config),
+            "segment_manifest": (
+                segment_manifest.metadata()
+                if segment_manifest is not None
+                else None
+            ),
         }
     )
     return rows, summary

@@ -69,6 +69,22 @@ A transformação é aplicada em 75% dos episódios e é reproduzível pela seme
 
 O resultado principal deve ser lido como um compromisso: a política robusta reduz interrupções, mas usa bitrate menor que a política Q-Learning original. A tabela completa e as limitações metodológicas estão em `results/generalization_results.md`.
 
+## Manifesto de Segmentos — Etapa 5.1
+
+O ambiente aceita um `SegmentManifest` opcional. Quando ausente, preserva o modelo nominal das etapas anteriores. Quando presente, cada decisão de bitrate consulta o par `(segmento, representação)` e usa o tamanho medido em bytes e a duração registrada.
+
+O CSV exige `sequence`, `segment`, `bitrate_kbps`, `duration_s` e `size_bytes`. PSNR-Y, caminho do payload e SHA-256 são opcionais. O carregador rejeita segmentos não consecutivos, representações ausentes, duplicatas, durações divergentes entre representações e valores inválidos.
+
+O tempo de download passa a ser:
+
+```text
+download_time_s = (size_bytes * 8 / 1000) / bandwidth_kbps
+```
+
+A duração medida também é usada no acréscimo ao buffer, no controle de overflow, na duração total do vídeo e na normalização da penalidade de rebuffering. A métrica `average_payload_bitrate_kbps` representa a taxa efetivamente transferida e entra automaticamente nos IC95% quando o protocolo usa manifesto. O hash do manifesto e seus metadados são persistidos nos modelos e resumos. `psnr_y_db` já aparece nos logs por segmento, mas sua incorporação à recompensa pertence a uma etapa posterior.
+
+O contrato detalhado está em `segment_manifests/README.md`. `example_segments.csv` contém apenas dados ilustrativos e não deve ser citado como codificação VVC real.
+
 ## Parâmetros de Codificação (VVenC)
 
 Para os experimentos, o VVenC foi configurado com os seguintes parâmetros base:

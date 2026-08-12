@@ -9,6 +9,7 @@ from pathlib import Path
 
 from experiment import load_bandwidth_trace, run_static_experiment
 from q_learning_pipeline import components_from_model, run_q_learning_experiment
+from segment_manifest import load_segment_manifest
 
 
 COMPARISON_FIELDS = (
@@ -21,6 +22,7 @@ COMPARISON_FIELDS = (
     "rebuffering_s",
     "rebuffering_rate_percent",
     "average_bitrate_kbps",
+    "average_payload_bitrate_kbps",
     "buffer_mean_s",
     "buffer_std_s",
 )
@@ -33,6 +35,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--trace", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--segment-manifest",
+        type=Path,
+        help="CSV opcional com duração e tamanho medidos por representação",
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--segments", type=int)
     return parser
@@ -41,11 +48,21 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = build_parser().parse_args()
     trace = load_bandwidth_trace(args.trace)
+    segment_manifest = (
+        load_segment_manifest(args.segment_manifest)
+        if args.segment_manifest is not None
+        else None
+    )
     agent, encoder, config, reward_config, _ = components_from_model(
         args.model,
         seed=args.seed,
     )
-    _, static_summary = run_static_experiment(trace, config, args.segments)
+    _, static_summary = run_static_experiment(
+        trace,
+        config,
+        args.segments,
+        segment_manifest,
+    )
     _, q_summary = run_q_learning_experiment(
         trace,
         config,
@@ -53,6 +70,7 @@ def main() -> int:
         encoder,
         reward_config,
         args.segments,
+        segment_manifest,
     )
     rows = []
     for summary in (static_summary, q_summary):

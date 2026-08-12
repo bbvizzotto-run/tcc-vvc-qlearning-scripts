@@ -15,6 +15,7 @@ from q_learning_pipeline import (
     train_q_learning,
 )
 from run_experiment import parse_bitrates
+from segment_manifest import load_segment_manifest
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -30,6 +31,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--history", type=Path, required=True)
+    parser.add_argument(
+        "--segment-manifest",
+        type=Path,
+        help="CSV opcional com duração e tamanho medidos por representação",
+    )
     parser.add_argument("--episodes", type=int, default=4000)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--bitrates", type=parse_bitrates, default=(500, 1000, 2000, 4000))
@@ -78,11 +84,17 @@ def main() -> int:
         (path.stem, load_bandwidth_trace(path))
         for path in args.trace
     ]
+    segment_manifest = (
+        load_segment_manifest(args.segment_manifest)
+        if args.segment_manifest is not None
+        else None
+    )
     agent, _, history, metadata = train_q_learning(
         named_traces,
         experiment_config,
         training_config,
         reward_config,
+        segment_manifest=segment_manifest,
     )
     model_path = agent.save(args.model, metadata)
     history_path = save_training_history(history, args.history)
@@ -100,6 +112,11 @@ def main() -> int:
         "total_states": agent.state_space_size,
         "model": str(model_path),
         "history": str(history_path),
+        "segment_manifest": (
+            segment_manifest.metadata()
+            if segment_manifest is not None
+            else None
+        ),
     }
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0

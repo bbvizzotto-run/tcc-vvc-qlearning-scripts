@@ -19,6 +19,7 @@ from q_learning_pipeline import (
     run_q_learning_experiment,
     train_q_learning,
 )
+from segment_manifest import load_segment_manifest
 from trace_augmentation import TraceAugmentationConfig
 
 
@@ -30,12 +31,14 @@ METRICS: tuple[str, ...] = (
     "buffer_mean_s",
     "buffer_std_s",
 )
+MANIFEST_METRICS: tuple[str, ...] = ("average_payload_bitrate_kbps",)
 
 BETTER_WHEN: Mapping[str, str] = {
     "startup_delay_s": "lower",
     "rebuffering_s": "lower",
     "rebuffering_rate_percent": "lower",
     "average_bitrate_kbps": "higher",
+    "average_payload_bitrate_kbps": "higher",
     "buffer_mean_s": "descriptive",
     "buffer_std_s": "lower",
 }
@@ -88,6 +91,7 @@ class ProtocolDefinition:
     training_config: TrainingConfig
     reward_config: RewardConfig
     trace_augmentation: TraceAugmentationConfig | None = None
+    segment_manifest_path: Path | None = None
 
 
 @dataclass
@@ -96,6 +100,7 @@ class ProtocolResult:
     aggregate: list[dict[str, object]]
     paired_differences: list[dict[str, object]]
     training_summary: list[dict[str, object]]
+    metrics: tuple[str, ...]
     models: dict[int, tuple[QLearningAgent, dict[str, object]]] = field(
         repr=False
     )
@@ -158,6 +163,13 @@ def load_protocol_definition(path: str | Path) -> ProtocolDefinition:
         training_raw["buffer_boundaries_s"]
     )
     training_raw["seed"] = seeds[0]
+    segment_manifest_path = (
+        (root / raw["segment_manifest"]).resolve()
+        if raw.get("segment_manifest") is not None
+        else None
+    )
+    if segment_manifest_path is not None and not segment_manifest_path.is_file():
+        raise ValueError("o manifesto de segmentos do protocolo não existe")
 
     return ProtocolDefinition(
         source_path=source_path,
@@ -174,6 +186,7 @@ def load_protocol_definition(path: str | Path) -> ProtocolDefinition:
             if raw.get("trace_augmentation") is not None
             else None
         ),
+        segment_manifest_path=segment_manifest_path,
     )
 
 
@@ -196,6 +209,7 @@ def _aggregate(
     raw_runs: Sequence[dict[str, object]],
     seeds: Sequence[int],
     evaluation_trace_names: Sequence[str],
+    metrics: Sequence[str] = METRICS,
 ) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     controllers = ("static", "q-learning")
@@ -207,7 +221,7 @@ def _aggregate(
                 for row in raw_runs
                 if row["trace"] == trace and row["controller"] == controller
             ]
-            for metric in METRICS:
+            for metric in metrics:
                 stats = confidence_interval_95(
                     [float(row[metric]) for row in selected]
                 )
@@ -225,7 +239,7 @@ def _aggregate(
     # Cada semente contribui com uma observação: a média dos traces daquela
     # semente. Isso evita inflar n tratando traces repetidos como independentes.
     for controller in controllers:
-        for metric in METRICS:
+        for metric in metrics:
             per_seed_means = []
             for seed in seeds:
                 selected = [
@@ -253,6 +267,7 @@ def _paired_differences(
     raw_runs: Sequence[dict[str, object]],
     seeds: Sequence[int],
     evaluation_trace_names: Sequence[str],
+    metrics: Sequence[str] = METRICS,
 ) -> list[dict[str, object]]:
     paired_by_seed_trace: dict[tuple[int, str], dict[str, dict[str, object]]] = {}
     for row in raw_runs:
@@ -266,7 +281,7 @@ def _paired_differences(
             pair = paired_by_seed_trace[(seed, trace)]
             if set(pair) != {"static", "q-learning"}:
                 raise ValueError(f"par incompleto para seed={seed}, trace={trace}")
-            for metric in METRICS:
+            for metric in metrics:
                 deltas[(seed, trace, metric)] = (
                     float(pair["q-learning"][metric])
                     - float(pair["static"][metric])
@@ -290,7 +305,7 @@ def _paired_differences(
         )
 
     for trace in evaluation_trace_names:
-        for metric in METRICS:
+        for metric in metrics:
             append_row(
                 "per_trace",
                 trace,
@@ -298,7 +313,7 @@ def _paired_differences(
                 [deltas[(seed, trace, metric)] for seed in seeds],
             )
 
-    for metric in METRICS:
+    for metric in metrics:
         per_seed_means = [
             fmean(
                 deltas[(seed, trace, metric)]
@@ -324,6 +339,12 @@ def execute_protocol(definition: ProtocolDefinition) -> ProtocolResult:
         (path.stem, load_bandwidth_trace(path))
         for path in definition.evaluation_trace_paths
     ]
+    segment_manifest = (
+        load_segment_manifest(definition.segment_manifest_path)
+        if definition.segment_manifest_path is not None
+        else None
+    )
+    metrics = METRICS + MANIFEST_METRICS if segment_manifest is not None else METRICS
     raw_runs: list[dict[str, object]] = []
     training_summary: list[dict[str, object]] = []
     models: dict[int, tuple[QLearningAgent, dict[str, object]]] = {}
@@ -336,7 +357,8 @@ def execute_protocol(definition: ProtocolDefinition) -> ProtocolResult:
             experiment_config,
             training_config,
             definition.reward_config,
-            definition.trace_augmentation,
+            trace_augmentation=definition.trace_augmentation,
+            segment_manifest=segment_manifest,
         )
         models[seed] = (agent, metadata)
         final_window = history[-min(50, len(history)) :]
@@ -360,6 +382,7 @@ def execute_protocol(definition: ProtocolDefinition) -> ProtocolResult:
             _, static_summary = run_static_experiment(
                 trace,
                 experiment_config,
+                segment_manifest=segment_manifest,
             )
             evaluation_seed = seed * 1009 + trace_index
             evaluation_agent = clone_agent(agent, evaluation_seed)
@@ -369,6 +392,7 @@ def execute_protocol(definition: ProtocolDefinition) -> ProtocolResult:
                 evaluation_agent,
                 encoder,
                 definition.reward_config,
+                segment_manifest=segment_manifest,
             )
             for summary in (static_summary, q_summary):
                 raw_runs.append(
@@ -383,19 +407,20 @@ def execute_protocol(definition: ProtocolDefinition) -> ProtocolResult:
                         "controller": summary["controller"],
                         **{
                             metric: float(summary[metric])
-                            for metric in METRICS
+                            for metric in metrics
                         },
                     }
                 )
 
     trace_names = [name for name, _ in evaluation_traces]
-    aggregate = _aggregate(raw_runs, definition.seeds, trace_names)
-    paired = _paired_differences(raw_runs, definition.seeds, trace_names)
+    aggregate = _aggregate(raw_runs, definition.seeds, trace_names, metrics)
+    paired = _paired_differences(raw_runs, definition.seeds, trace_names, metrics)
     return ProtocolResult(
         raw_runs=raw_runs,
         aggregate=aggregate,
         paired_differences=paired,
         training_summary=training_summary,
+        metrics=metrics,
         models=models,
     )
 
@@ -442,6 +467,12 @@ def save_protocol_result(
         )
         model_paths[seed] = str(model_path.relative_to(destination))
 
+    segment_manifest = (
+        load_segment_manifest(definition.segment_manifest_path)
+        if definition.segment_manifest_path is not None
+        else None
+    )
+
     manifest: dict[str, Any] = {
         "protocol_version": definition.protocol_version,
         "confidence_level": definition.confidence_level,
@@ -450,7 +481,7 @@ def save_protocol_result(
             "average evaluation traces within each seed, then compute CI across seeds"
         ),
         "delta_definition": "q-learning_minus_static",
-        "metrics": list(METRICS),
+        "metrics": list(result.metrics),
         "better_when": dict(BETTER_WHEN),
         "seeds": list(definition.seeds),
         "training_traces": [
@@ -465,6 +496,11 @@ def save_protocol_result(
         "trace_augmentation": (
             asdict(definition.trace_augmentation)
             if definition.trace_augmentation is not None
+            else None
+        ),
+        "segment_manifest": (
+            segment_manifest.metadata()
+            if segment_manifest is not None
             else None
         ),
         "models": model_paths,

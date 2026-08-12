@@ -1,0 +1,7 @@
+candidate_id,quality_weight,rebuffering_weight,switch_weight,low_buffer_weight,target_buffer_s,rebuffering_rate_delta_mean,rebuffering_rate_delta_ci95_low,rebuffering_rate_delta_ci95_high,payload_bitrate_delta_mean_kbps,payload_bitrate_delta_ci95_low_kbps,payload_bitrate_delta_ci95_high_kbps,noninferiority_margin_percent,eligible,selected,rank
+wr10_wb2,1.0,10.0,0.25,2.0,8.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,True,1
+wr20_wb2,1.0,20.0,0.25,2.0,8.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,False,2
+wr30_wb2,1.0,30.0,0.25,2.0,8.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,False,3
+wr10_wb1,1.0,10.0,0.25,1.0,8.0,14.588379306267706,4.46404406771792,24.712714544817494,1382.5655598455605,332.7173320927252,2432.413787598396,0.0,False,False,4
+wr20_wb1,1.0,20.0,0.25,1.0,8.0,14.588379306267706,4.46404406771792,24.712714544817494,1224.0466128466135,374.55826353106374,2073.534962162163,0.0,False,False,5
+wr30_wb1,1.0,30.0,0.25,1.0,8.0,10.94128447970078,-1.4584431799622113,23.34101213936377,918.03495963496,-122.37153949616606,1958.4414587660863,0.0,False,False,6

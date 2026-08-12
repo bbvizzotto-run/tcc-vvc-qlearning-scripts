@@ -1,0 +1,77 @@
+{
+  "tuning_version": 1,
+  "base_protocol": "dvb_uhd1_hfr_protocol_config.json",
+  "noninferiority_margin_percent": 0.0,
+  "validation_traces": [
+    {
+      "path": "bandwidth_traces/validation_bursty.csv",
+      "bandwidth_scale": 10.0
+    },
+    {
+      "path": "bandwidth_traces/validation_mixed.csv",
+      "bandwidth_scale": 10.0
+    }
+  ],
+  "candidates": [
+    {
+      "id": "wr10_wb1",
+      "reward_config": {
+        "quality_weight": 1.0,
+        "rebuffering_weight": 10.0,
+        "switch_weight": 0.25,
+        "low_buffer_weight": 1.0,
+        "target_buffer_s": 8.0
+      }
+    },
+    {
+      "id": "wr10_wb2",
+      "reward_config": {
+        "quality_weight": 1.0,
+        "rebuffering_weight": 10.0,
+        "switch_weight": 0.25,
+        "low_buffer_weight": 2.0,
+        "target_buffer_s": 8.0
+      }
+    },
+    {
+      "id": "wr20_wb1",
+      "reward_config": {
+        "quality_weight": 1.0,
+        "rebuffering_weight": 20.0,
+        "switch_weight": 0.25,
+        "low_buffer_weight": 1.0,
+        "target_buffer_s": 8.0
+      }
+    },
+    {
+      "id": "wr20_wb2",
+      "reward_config": {
+        "quality_weight": 1.0,
+        "rebuffering_weight": 20.0,
+        "switch_weight": 0.25,
+        "low_buffer_weight": 2.0,
+        "target_buffer_s": 8.0
+      }
+    },
+    {
+      "id": "wr30_wb1",
+      "reward_config": {
+        "quality_weight": 1.0,
+        "rebuffering_weight": 30.0,
+        "switch_weight": 0.25,
+        "low_buffer_weight": 1.0,
+        "target_buffer_s": 8.0
+      }
+    },
+    {
+      "id": "wr30_wb2",
+      "reward_config": {
+        "quality_weight": 1.0,
+        "rebuffering_weight": 30.0,
+        "switch_weight": 0.25,
+        "low_buffer_weight": 2.0,
+        "target_buffer_s": 8.0
+      }
+    }
+  ]
+}

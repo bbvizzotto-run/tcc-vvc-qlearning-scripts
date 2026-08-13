@@ -1,0 +1,38 @@
+{
+  "stage": "5.4c",
+  "status": "frozen_before_first_and_only_holdout_execution",
+  "attested_at_utc": "2026-08-13T12:00:20Z",
+  "base_main_merge_commit": "690b421043103e9a33e2c123ba34f6d38335a073",
+  "algorithm_and_protocol_freeze_commit": "680a16f9dda6fc3fc2da99993dc8ff5dfc46a261",
+  "comparison_config_git_blob": "5a71dc85e1eddc8ed95ae48c6d5940ad40eb8910",
+  "selected_protocol_git_blob": "6d5c334d548c9b4b450e5cb02775497868d3de41",
+  "planned_command": "python run_abr_comparison.py --config dvb_startup_holdout_comparison_config.json --output-dir results/dvb_startup_holdout_final",
+  "execution_policy": "single_final_execution_after_versioned_freeze",
+  "holdout_execution_count_before_attestation": 0,
+  "output_directory_existed_before_attestation": false,
+  "post_freeze_parameter_changes": false,
+  "controllers": [
+    "static",
+    "throughput",
+    "bola-basic",
+    "robust-mpc",
+    "q-learning"
+  ],
+  "frozen_inputs_sha256": {
+    "dvb_startup_holdout_comparison_config.json": "b29aaaec1ab8194f86e2e08c5e1ebf2e2ab531c3c3130d2b48359d1cc4815d39",
+    "dvb_uhd1_hfr_startup_guard_selected_protocol_config.json": "42cef383048ba00a644b0888b0d0681011d3cf1f5e1c079b06c704b28f16c657",
+    "segment_manifests/dvb_vvc_uhd1_hfr.csv": "c529b3942939da3a71d94832fa71b572f5b31a843dd3481b739de57145b33fa7",
+    "bandwidth_traces/stable.csv": "45219bc737bd9cf4f7cfd837cf706b19d3c37f97c168705eeb2e16f169737bbf",
+    "bandwidth_traces/fluctuating.csv": "1e7bdcef6438c8a1025b9e79ab28daa8330e5e595dc7e2310b0a9896afeb1566",
+    "bandwidth_traces/stage54b_evaluation_low_start.csv": "36ae39bb673b31e26cd57858283a7e87d00fd3188dbeeb12a936613eaeeceee5",
+    "bandwidth_traces/stage54b_evaluation_mixed_start.csv": "9ad25f9f8b791c01f088451391e9d4b8ef11e6ca351190560592b7b314165322",
+    "bandwidth_traces/stage54b_evaluation_high_start.csv": "4862b37c802420223797dce99ac3c11193ad1137d02d619450cb0f31ef9165b9",
+    "bandwidth_traces/stage54b_trace_provenance.json": "9ac78e31ebbbc86dbc7c7b8dc300cf1667d472d094b19f9ce7a2be4f84ffe73b"
+  },
+  "validation": {
+    "unit_tests": 56,
+    "python_compilation": "passed",
+    "json_validation": "passed",
+    "production_holdout_loaded_during_validation": false
+  }
+}

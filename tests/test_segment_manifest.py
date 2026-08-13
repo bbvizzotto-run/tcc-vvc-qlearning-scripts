@@ -76,6 +76,53 @@ class SegmentManifestTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "size_bytes"):
                 load_segment_manifest(path)
 
+    def test_loads_canonical_representation_metadata(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "canonical.csv"
+            path.write_text(
+                "sequence,segment,representation_id,encoder_target_kbps,"
+                "bitrate_kbps,duration_s,size_bytes\n"
+                "video,0,L0,1000,900,1,100000\n"
+                "video,0,L1,2000,2200,1,250000\n"
+                "video,1,L0,1000,900,1,125000\n"
+                "video,1,L1,2000,2200,1,300000\n",
+                encoding="utf-8",
+            )
+            manifest = load_segment_manifest(path)
+            metadata = manifest.metadata()
+
+        self.assertEqual(manifest.bitrates_kbps, (900, 2200))
+        self.assertEqual(manifest.get(0, 900).representation_id, "L0")
+        self.assertEqual(manifest.get(0, 900).encoder_target_kbps, 1000)
+        self.assertEqual(
+            metadata["representations"],
+            [
+                {
+                    "bitrate_kbps": 900,
+                    "representation_id": "L0",
+                    "encoder_target_kbps": 1000,
+                },
+                {
+                    "bitrate_kbps": 2200,
+                    "representation_id": "L1",
+                    "encoder_target_kbps": 2000,
+                },
+            ],
+        )
+
+    def test_rejects_representation_metadata_that_varies_between_segments(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "canonical.csv"
+            path.write_text(
+                "sequence,segment,representation_id,encoder_target_kbps,"
+                "bitrate_kbps,duration_s,size_bytes\n"
+                "video,0,L0,1000,900,1,100000\n"
+                "video,1,,1000,900,1,125000\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "variam entre segmentos"):
+                load_segment_manifest(path)
+
 
 if __name__ == "__main__":
     unittest.main()

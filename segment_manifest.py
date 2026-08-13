@@ -19,6 +19,8 @@ REQUIRED_COLUMNS: tuple[str, ...] = (
     "size_bytes",
 )
 OPTIONAL_COLUMNS: tuple[str, ...] = (
+    "representation_id",
+    "encoder_target_kbps",
     "psnr_y_db",
     "source_file",
     "sha256",
@@ -38,6 +40,8 @@ class SegmentMetadata:
     psnr_y_db: float | None = None
     source_file: str | None = None
     sha256: str | None = None
+    representation_id: str | None = None
+    encoder_target_kbps: int | None = None
 
     def __post_init__(self) -> None:
         sequence = self.sequence.strip()
@@ -57,6 +61,8 @@ class SegmentMetadata:
             raise ValueError("psnr_y_db deve ser positivo e finito")
         if self.sha256 is not None and not SHA256_PATTERN.fullmatch(self.sha256):
             raise ValueError("sha256 deve conter 64 dígitos hexadecimais")
+        if self.encoder_target_kbps is not None and self.encoder_target_kbps <= 0:
+            raise ValueError("encoder_target_kbps deve ser positivo")
 
         object.__setattr__(self, "sequence", sequence)
         if self.source_file is not None:
@@ -64,6 +70,13 @@ class SegmentMetadata:
             object.__setattr__(self, "source_file", source_file or None)
         if self.sha256 is not None:
             object.__setattr__(self, "sha256", self.sha256.lower())
+        if self.representation_id is not None:
+            representation_id = self.representation_id.strip()
+            object.__setattr__(
+                self,
+                "representation_id",
+                representation_id or None,
+            )
 
     @property
     def size_kbits(self) -> float:
@@ -126,6 +139,29 @@ class SegmentManifest:
                     f"as representações do segmento {segment} têm durações diferentes"
                 )
 
+        representation_ids: set[str] = set()
+        for bitrate in bitrates:
+            entries_for_bitrate = [
+                by_key[(segment, bitrate)] for segment in segment_indices
+            ]
+            ids = {
+                entry.representation_id for entry in entries_for_bitrate
+            }
+            targets = {
+                entry.encoder_target_kbps for entry in entries_for_bitrate
+            }
+            if len(ids) > 1 or len(targets) > 1:
+                raise ValueError(
+                    "metadados da representação variam entre segmentos para "
+                    f"bitrate_kbps={bitrate}"
+                )
+            if ids != {None}:
+                representation_id = next(iter(ids))
+                assert representation_id is not None
+                if representation_id in representation_ids:
+                    raise ValueError("representation_id deve ser único na escada")
+                representation_ids.add(representation_id)
+
         self._entries = by_key
         self.sequence = next(iter(sequences))
         self.segment_indices = segment_indices
@@ -151,6 +187,12 @@ class SegmentManifest:
                     psnr_text = (row.get("psnr_y_db") or "").strip()
                     source_file = (row.get("source_file") or "").strip() or None
                     sha256 = (row.get("sha256") or "").strip() or None
+                    representation_id = (
+                        row.get("representation_id") or ""
+                    ).strip() or None
+                    encoder_target_text = (
+                        row.get("encoder_target_kbps") or ""
+                    ).strip()
                     entries.append(
                         SegmentMetadata(
                             sequence=str(row["sequence"]),
@@ -161,6 +203,12 @@ class SegmentManifest:
                             psnr_y_db=float(psnr_text) if psnr_text else None,
                             source_file=source_file,
                             sha256=sha256,
+                            representation_id=representation_id,
+                            encoder_target_kbps=(
+                                int(encoder_target_text)
+                                if encoder_target_text
+                                else None
+                            ),
                         )
                     )
                 except (TypeError, ValueError) as exc:
@@ -185,12 +233,24 @@ class SegmentManifest:
     def metadata(self) -> dict[str, object]:
         """Resumo serializável para logs, modelos e manifestos experimentais."""
 
+        representations = []
+        for bitrate in self.bitrates_kbps:
+            entry = self.get(0, bitrate)
+            representations.append(
+                {
+                    "bitrate_kbps": bitrate,
+                    "representation_id": entry.representation_id,
+                    "encoder_target_kbps": entry.encoder_target_kbps,
+                }
+            )
+
         return {
             "source": self.source_path.name if self.source_path else None,
             "manifest_sha256": self.manifest_sha256,
             "sequence": self.sequence,
             "segment_count": self.segment_count,
             "bitrates_kbps": list(self.bitrates_kbps),
+            "representations": representations,
             "size_unit": "bytes",
         }
 

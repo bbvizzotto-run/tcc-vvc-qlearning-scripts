@@ -1,0 +1,183 @@
+import csv
+import hashlib
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from measured_ladder import canonicalize_manifest
+from segment_manifest import load_segment_manifest
+
+
+class MeasuredLadderTest(unittest.TestCase):
+    def _raw_manifest(self, root: Path, *, invert_psnr: bool = False) -> Path:
+        path = root / "raw.csv"
+        high_second_psnr = "30" if invert_psnr else "34"
+        path.write_text(
+            "sequence,segment,bitrate_kbps,duration_s,size_bytes,"
+            "psnr_y_db,source_file,sha256\n"
+            f"video,0,1000,1,100000,30,low0.266,{'a' * 64}\n"
+            f"video,0,2000,1,250000,33,high0.266,{'b' * 64}\n"
+            f"video,1,1000,1,125000,31,low1.266,{'c' * 64}\n"
+            f"video,1,2000,1,300000,{high_second_psnr},high1.266,"
+            f"{'d' * 64}\n",
+            encoding="utf-8",
+        )
+        return path
+
+    def _source_provenance(self, root: Path, *, targets=None) -> Path:
+        configured_targets = targets or [1000, 2000]
+        commands = []
+        for segment in range(2):
+            for bitrate in (1000, 2000):
+                commands.append(
+                    {
+                        "segment": segment,
+                        "bitrate_kbps": bitrate,
+                        "encoder": [
+                            "vvencapp",
+                            "--additional",
+                            "POC0IDR=1",
+                        ],
+                        "encoder_reused": False,
+                        "decoder": ["vvdecapp"],
+                    }
+                )
+        path = root / "raw.provenance.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "pipeline_schema_version": 1,
+                    "generated_at_utc": "2026-01-01T00:00:00+00:00",
+                    "configuration_sha256": "e" * 64,
+                    "configuration": {
+                        "source": {"segment_count": 2},
+                        "bitrates_kbps": configured_targets,
+                        "encoder": {"refresh_type": "idr_no_radl"},
+                    },
+                    "pipeline": {"git_commit": "abc", "git_dirty": False},
+                    "source": {"sha256": "f" * 64},
+                    "tools": {"encoder": {"version": "VVenC 1.14.0"}},
+                    "runtime": {"platform": "test"},
+                    "commands": commands,
+                    "manifest": {
+                        "source": "raw.csv",
+                        "manifest_sha256": hashlib.sha256(
+                            (root / "raw.csv").read_bytes()
+                        ).hexdigest(),
+                        "sequence": "video",
+                        "segment_count": 2,
+                        "bitrates_kbps": [1000, 2000],
+                        "size_unit": "bytes",
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        return path
+
+    def test_canonicalizes_measured_ladder_and_is_deterministic(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            raw = self._raw_manifest(root)
+            source_provenance = self._source_provenance(root)
+            output = root / "canonical.csv"
+            result = canonicalize_manifest(raw, source_provenance, output)
+            first_csv = output.read_bytes()
+            first_provenance = output.with_suffix(".provenance.json").read_bytes()
+
+            canonicalize_manifest(
+                raw,
+                source_provenance,
+                output,
+                overwrite=True,
+            )
+            manifest = load_segment_manifest(output)
+            with output.open(newline="", encoding="utf-8") as handle:
+                rows = list(csv.DictReader(handle))
+
+            self.assertEqual(output.read_bytes(), first_csv)
+            self.assertEqual(
+                output.with_suffix(".provenance.json").read_bytes(),
+                first_provenance,
+            )
+
+        self.assertEqual(manifest.bitrates_kbps, (900, 2200))
+        self.assertEqual(rows[0]["representation_id"], "L0")
+        self.assertEqual(rows[0]["encoder_target_kbps"], "1000")
+        self.assertEqual(rows[0]["bitrate_kbps"], "900")
+        self.assertEqual(
+            result["output"]["operational_bitrates_kbps"],
+            [900, 2200],
+        )
+        self.assertEqual(
+            result["representations"][0]["measured_bitrate_kbps"],
+            "900",
+        )
+        self.assertEqual(result["source_execution_audit"]["commands_validated"], 4)
+
+    def test_refuses_to_replace_existing_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            raw = self._raw_manifest(root)
+            source_provenance = self._source_provenance(root)
+            output = root / "canonical.csv"
+            output.write_text("existing", encoding="utf-8")
+            with self.assertRaisesRegex(FileExistsError, "--overwrite"):
+                canonicalize_manifest(raw, source_provenance, output)
+
+    def test_rejects_output_provenance_that_would_replace_the_manifest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            raw = self._raw_manifest(root)
+            source_provenance = self._source_provenance(root)
+            output = root / "canonical.csv"
+            with self.assertRaisesRegex(ValueError, "arquivo distinto"):
+                canonicalize_manifest(
+                    raw,
+                    source_provenance,
+                    output,
+                    output_provenance=output,
+                )
+
+    def test_rejects_non_monotonic_psnr(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with self.assertRaisesRegex(ValueError, "psnr_y_db"):
+                canonicalize_manifest(
+                    self._raw_manifest(root, invert_psnr=True),
+                    self._source_provenance(root),
+                    root / "canonical.csv",
+                )
+
+    def test_rejects_provenance_with_a_different_ladder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with self.assertRaisesRegex(ValueError, "escada da proveniência"):
+                canonicalize_manifest(
+                    self._raw_manifest(root),
+                    self._source_provenance(root, targets=[1000, 4000]),
+                    root / "canonical.csv",
+                )
+
+    def test_rejects_provenance_with_a_different_manifest_hash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            raw = self._raw_manifest(root)
+            source_provenance = self._source_provenance(root)
+            provenance = json.loads(source_provenance.read_text(encoding="utf-8"))
+            provenance["manifest"]["manifest_sha256"] = "0" * 64
+            source_provenance.write_text(
+                json.dumps(provenance),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "hash do manifesto"):
+                canonicalize_manifest(
+                    raw,
+                    source_provenance,
+                    root / "canonical.csv",
+                )
+
+
+if __name__ == "__main__":
+    unittest.main()

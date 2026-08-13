@@ -1,0 +1,151 @@
+{
+  "artifacts": {
+    "aggregate": {
+      "path": "aggregate.csv",
+      "sha256": "b966b9d4a501e13ab4792c8d350c9e738464d9c12de0e0e6f7c019d22be3ea70"
+    },
+    "paired_differences": {
+      "path": "paired_differences.csv",
+      "sha256": "a5ae909d67746b58fdd4b0d1f35b10030b541cae7c2287c48c9400678ce762a4"
+    },
+    "raw_runs": {
+      "path": "raw_runs.csv",
+      "sha256": "56e9398ae6784a6e4f7a7fc3206dc52af35a4bc2be9955dfd8c0275a9a16e018"
+    },
+    "training_summary": {
+      "path": "training_summary.csv",
+      "sha256": "34859ec7878890308623fa414f062efaeec3073109df2fb98e34ea7209f5b7fd"
+    }
+  },
+  "base_protocol": {
+    "experiment_config": {
+      "bitrates_kbps": [
+        10026,
+        58015
+      ],
+      "high_buffer_s": 10.0,
+      "low_buffer_s": 4.0,
+      "max_buffer_s": 20.0,
+      "seed": 11,
+      "segment_duration_s": 0.65,
+      "startup_buffer_s": 4.0
+    },
+    "path": "dvb_uhd1_hfr_selected_protocol_config.json",
+    "reward_config": {
+      "low_buffer_weight": 2.0,
+      "quality_weight": 1.0,
+      "rebuffering_weight": 10.0,
+      "switch_weight": 0.25,
+      "target_buffer_s": 8.0
+    },
+    "seeds": [
+      11,
+      23,
+      37,
+      53,
+      71
+    ],
+    "sha256": "f269dc48fd06a4de396602363b1d915ca88d94b286bd4a9504e43bac7c9a49e1",
+    "training_config": {
+      "buffer_boundaries_s": [
+        2.0,
+        4.0,
+        6.0,
+        8.0,
+        12.0,
+        16.0
+      ],
+      "discount_factor": 0.95,
+      "episodes": 4000,
+      "epsilon_decay": 0.995,
+      "epsilon_min": 0.05,
+      "epsilon_start": 1.0,
+      "learning_rate": 0.1,
+      "seed": 11
+    }
+  },
+  "baselines": {
+    "bola_basic": {
+      "buffer_target_s": 20.0,
+      "minimum_buffer_s": 10.0
+    },
+    "robust_mpc": {
+      "error_window": 5,
+      "history_window": 5,
+      "horizon": 5
+    },
+    "static": {
+      "high_buffer_s": 10.0,
+      "low_buffer_s": 4.0
+    },
+    "throughput": {
+      "history_window": 5,
+      "safety_factor": 0.85
+    }
+  },
+  "better_when": {
+    "average_bitrate_kbps": "higher",
+    "average_payload_bitrate_kbps": "higher",
+    "buffer_mean_s": "descriptive",
+    "buffer_std_s": "lower",
+    "high_representation_fraction_percent": "descriptive",
+    "mean_objective_reward": "higher",
+    "rebuffering_rate_percent": "lower",
+    "rebuffering_s": "lower",
+    "startup_delay_s": "lower",
+    "switch_count": "lower"
+  },
+  "comparison_version": 1,
+  "confidence_level": 0.95,
+  "confidence_method": "two-sided Student t interval for the mean",
+  "controllers": [
+    "static",
+    "throughput",
+    "bola-basic",
+    "robust-mpc",
+    "q-learning"
+  ],
+  "decision_information_policy": "only completed-segment throughput, current buffer, and public segment metadata; no current-segment bandwidth",
+  "delta_definitions": [
+    "q-learning_minus_static",
+    "q-learning_minus_throughput",
+    "q-learning_minus_bola-basic",
+    "q-learning_minus_robust-mpc"
+  ],
+  "metrics": [
+    "startup_delay_s",
+    "rebuffering_s",
+    "rebuffering_rate_percent",
+    "average_bitrate_kbps",
+    "average_payload_bitrate_kbps",
+    "buffer_mean_s",
+    "buffer_std_s",
+    "mean_objective_reward",
+    "switch_count",
+    "high_representation_fraction_percent"
+  ],
+  "model_artifacts": "not persisted; deterministic q_table hashes are in training_summary.csv",
+  "overall_method": "average evaluation traces within each seed, then compute CI across seeds",
+  "parameter_policy": "frozen_before_first_execution_no_evaluation_tuning",
+  "references": {
+    "bola": "https://arxiv.org/abs/1601.06748",
+    "dashjs_bola_reference": "https://github.com/Dash-Industry-Forum/dash.js/blob/development/src/streaming/rules/abr/BolaRule.js",
+    "pensieve_robust_mpc_reference": "https://github.com/hongzimao/pensieve/blob/master/test/mpc.py",
+    "robust_mpc": "https://doi.org/10.1145/2785956.2787486"
+  },
+  "reward_scope": "the frozen project objective includes quality, post-startup rebuffering, switching, and low buffer; startup delay is reported as a separate metric but is not part of the optimized objective",
+  "segment_manifest": {
+    "bitrates_kbps": [
+      10026,
+      58015
+    ],
+    "manifest_sha256": "c529b3942939da3a71d94832fa71b572f5b31a843dd3481b739de57145b33fa7",
+    "path": "dvb_vvc_uhd1_hfr.csv",
+    "segment_count": 63,
+    "sequence": "DVB_VVC_UHD1_HFR",
+    "size_unit": "bytes",
+    "source": "dvb_vvc_uhd1_hfr.csv"
+  },
+  "stage": "5.4a",
+  "study_status": "post_hoc_extension_after_stage_5_3b_parameters_frozen_before_stage_5_4a"
+}

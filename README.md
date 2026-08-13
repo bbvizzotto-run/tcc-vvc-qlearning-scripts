@@ -6,7 +6,7 @@ Este repositório contém scripts e materiais relacionados ao trabalho de conclu
 
 ## Status da Implementação
 
-O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico, a Etapa 4 melhora a generalização a rajadas e a Etapa 5.1 conecta tamanhos medidos ao simulador. A **Etapa 5.2** automatiza a codificação controlada com VVenC, a **Etapa 5.2b** importa pacotes DVB-DASH VVC reais, a **Etapa 5.3** seleciona a recompensa em validação e a avalia uma única vez nos benchmarks congelados e a **Etapa 5.4a** adiciona baselines competitivos de throughput, BOLA-BASIC e RobustMPC.
+O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico, a Etapa 4 melhora a generalização a rajadas e a Etapa 5.1 conecta tamanhos medidos ao simulador. A **Etapa 5.2** automatiza a codificação controlada com VVenC, a **Etapa 5.2b** importa pacotes DVB-DASH VVC reais, a **Etapa 5.3** seleciona a recompensa em validação e a avalia uma única vez nos benchmarks congelados, a **Etapa 5.4a** adiciona baselines competitivos e a **Etapa 5.4b** corrige o objetivo de startup e congela um novo holdout.
 
 | Componente | Estado atual |
 | :--- | :--- |
@@ -30,6 +30,8 @@ O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 impl
 | Ajuste controlado da recompensa apenas em validação | Implementado |
 | Avaliação final da recompensa selecionada | Implementado (Etapa 5.3b) |
 | Comparação com throughput, BOLA-BASIC e RobustMPC | Implementado (Etapa 5.4a) |
+| Recompensa com startup e guarda pré-reprodução | Selecionada em validação (Etapa 5.4b) |
+| Avaliação no novo holdout de 60 segmentos | Congelada, ainda não executada |
 | Dataset VVC real e resultados completos | Pendente de execução com as fontes YUV |
 | Rede `tc/netem` | Pendente |
 
@@ -254,6 +256,22 @@ python run_abr_comparison.py \
 O protocolo produz 75 avaliações pareadas. Q-Learning mantém o ganho sobre o baseline estático, mas fica estatisticamente empatado com BOLA-BASIC nas métricas principais. RobustMPC transfere mais bitrate e maximiza melhor a recompensa congelada, porém aumenta o atraso inicial médio de 2,453 para 10,995 s. Esse resultado expõe que a recompensa atual não inclui startup; por isso, os arquivos usam o nome `mean_objective_reward`, não QoE total.
 
 Essa comparação é uma extensão *post hoc*, não uma confirmação pré-registrada. Ela não sustenta superioridade geral do Q-Learning e orienta a próxima etapa: incluir startup no desenho da recompensa e ampliar conteúdos e traces. Resultados, IC95%, hashes e limitações estão em `results/dvb_abr_comparison/`.
+
+### Recompensa com startup e novo holdout
+
+A Etapa 5.4b adiciona `startup_weight` à recompensa e gera seis traces independentes de 60 segmentos, sem reamostrar os conjuntos anteriores. Três traces são usados exclusivamente para validação e três formam um novo holdout congelado:
+
+```bash
+python generate_holdout_traces.py \
+  --config stage54b_trace_synthesis_config.json \
+  --provenance bandwidth_traces/stage54b_trace_provenance.json
+```
+
+As primeiras rodadas mostraram que elevar o peso até 5 não eliminava o startup adicional, porque o Q-Learning podia aumentar a representação antes de iniciar a reprodução. Foi então acrescentada uma guarda configurável que mantém a menor representação somente durante o preenchimento inicial.
+
+Com a guarda, `startup_weight=0,5` foi selecionado em validação: startup idêntico ao estático, redução de 0,495 ponto percentual na taxa de rebuffering e diferença inconclusiva de −151 kbps no bitrate útil, IC95% [−1.227; 924]. As rodadas intermediárias foram preservadas para auditoria.
+
+O holdout `stage54b_evaluation_*` **não foi executado**. A entrada congelada para essa avaliação futura é `dvb_uhd1_hfr_startup_guard_selected_protocol_config.json`. Resultados de seleção, hashes e limitações estão em `results/dvb_startup_guard_tuning/`.
 
 ## Objetivos
 

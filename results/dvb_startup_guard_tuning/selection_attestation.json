@@ -1,0 +1,28 @@
+{
+  "stage": "5.4b",
+  "status": "validation_selection_complete_holdout_not_executed",
+  "algorithm_freeze_commit": "f7e93bfe821167c56de9789d61bb98a0273d1a04",
+  "executed_at_utc": "2026-08-13T00:19:24Z",
+  "selection_execution_count": 2,
+  "second_execution_reason": "regenerate identical numeric outputs after adding refinement context to manifest metadata",
+  "post_selection_algorithm_changes": false,
+  "command": "python run_reward_tuning.py --config dvb_startup_guard_tuning_config.json --output-dir results/dvb_startup_guard_tuning --selected-protocol dvb_uhd1_hfr_startup_guard_selected_protocol_config.json",
+  "selected_candidate_id": "guard_wstartup050",
+  "evaluation_executed": false,
+  "inputs_sha256": {
+    "dvb_startup_guard_tuning_config.json": "59a8cda0227dc0c4745d3c9f3e36b0eac0f5814b05075b9faf342d131986c36d",
+    "dvb_uhd1_hfr_startup_guard_protocol_config.json": "392240d03830d9bbe2a334650c813a1a7d45440bc1ed3503dbd5ab09b61e2227",
+    "bandwidth_traces/stage54b_trace_provenance.json": "9ac78e31ebbbc86dbc7c7b8dc300cf1667d472d094b19f9ce7a2be4f84ffe73b"
+  },
+  "outputs_sha256": {
+    "dvb_uhd1_hfr_startup_guard_selected_protocol_config.json": "42cef383048ba00a644b0888b0d0681011d3cf1f5e1c079b06c704b28f16c657",
+    "candidate_selection.csv": "ee4c7b7d90bba69a94a0ee6a73692a97755d84a841c9672add379def24bebb2f",
+    "training_summary.csv": "e128408ab625ac4ce9699f4ddafc4263a920539490c9a73de875e4201edea84f",
+    "validation_paired_differences.csv": "c4df6165cb28d4fba2181604902aace50100df899683140ac8c4bd11854b1112",
+    "validation_raw_runs.csv": "9f8da6e4364e433d3c64d37f80ea796e111430cb9eae29a71e861f06d8d1c595",
+    "manifest.json": "fbab793a236d31d338a1aff768ba4d88b832d3e59edb56d277bfa10d50342825"
+  },
+  "training_runs": 20,
+  "validation_runs": 75,
+  "models_versioned": false
+}

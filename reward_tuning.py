@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import json
 import math
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from statistics import fmean
 from typing import Any, Mapping, Sequence
@@ -56,6 +56,7 @@ class RewardTuningDefinition:
     noninferiority_margin_percent: float = 0.0
     startup_noninferiority_margin_s: float | None = None
     stage: str = "5.3a"
+    selection_context: Mapping[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -126,6 +127,7 @@ def load_reward_tuning_definition(path: str | Path) -> RewardTuningDefinition:
             else None
         ),
         stage=str(raw.get("stage", "5.3a")),
+        selection_context=dict(raw.get("refinement_provenance", {})),
     )
     _validate_definition(definition)
     return definition
@@ -542,6 +544,7 @@ def save_reward_tuning_result(
         "secondary_metric": SECONDARY_METRIC,
         "selection_method": SELECTION_METHOD,
         "selection_mode": result.selection_mode,
+        "selection_context": dict(definition.selection_context),
         "noninferiority_margin_percent": definition.noninferiority_margin_percent,
         "startup_noninferiority_margin_s": (
             definition.startup_noninferiority_margin_s

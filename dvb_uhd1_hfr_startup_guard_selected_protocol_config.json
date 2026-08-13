@@ -1,0 +1,88 @@
+{
+  "protocol_version": 5,
+  "confidence_level": 0.95,
+  "seeds": [
+    11,
+    23,
+    37,
+    53,
+    71
+  ],
+  "training_traces": [
+    {
+      "path": "bandwidth_traces/stable.csv",
+      "bandwidth_scale": 10.0
+    },
+    {
+      "path": "bandwidth_traces/fluctuating.csv",
+      "bandwidth_scale": 10.0
+    }
+  ],
+  "evaluation_traces": [
+    {
+      "path": "bandwidth_traces/stage54b_evaluation_low_start.csv",
+      "bandwidth_scale": 10.0
+    },
+    {
+      "path": "bandwidth_traces/stage54b_evaluation_mixed_start.csv",
+      "bandwidth_scale": 10.0
+    },
+    {
+      "path": "bandwidth_traces/stage54b_evaluation_high_start.csv",
+      "bandwidth_scale": 10.0
+    }
+  ],
+  "experiment_config": {
+    "bitrates_kbps": [
+      10026,
+      58015
+    ],
+    "segment_duration_s": 0.65,
+    "startup_buffer_s": 4.0,
+    "max_buffer_s": 20.0,
+    "low_buffer_s": 4.0,
+    "high_buffer_s": 10.0
+  },
+  "training_config": {
+    "episodes": 4000,
+    "learning_rate": 0.1,
+    "discount_factor": 0.95,
+    "epsilon_start": 1.0,
+    "epsilon_min": 0.05,
+    "epsilon_decay": 0.995,
+    "buffer_boundaries_s": [
+      2.0,
+      4.0,
+      6.0,
+      8.0,
+      12.0,
+      16.0
+    ],
+    "startup_guard": true
+  },
+  "reward_config": {
+    "quality_weight": 1.0,
+    "rebuffering_weight": 10.0,
+    "switch_weight": 0.25,
+    "low_buffer_weight": 2.0,
+    "startup_weight": 0.5,
+    "target_buffer_s": 8.0
+  },
+  "segment_manifest": "segment_manifests/dvb_vvc_uhd1_hfr.csv",
+  "protocol_purpose": {
+    "stage": "5.4b-guard-refinement",
+    "status": "holdout_frozen_not_executed",
+    "refinement_reason": "weight-only rounds failed startup non-inferiority because Q-Learning could increase bitrate before playback",
+    "startup_guard": "force the lowest representation until playback starts",
+    "trace_generator": "stage54b_trace_synthesis_config.json",
+    "trace_provenance": "bandwidth_traces/stage54b_trace_provenance.json",
+    "content_scope": "60 of 63 DVB media segments"
+  },
+  "selection_provenance": {
+    "stage": "5.4b-startup-guard",
+    "tuning_config": "dvb_startup_guard_tuning_config.json",
+    "tuning_manifest": "results/dvb_startup_guard_tuning/manifest.json",
+    "selected_candidate_id": "guard_wstartup050",
+    "evaluation_status": "frozen_not_executed_during_selection"
+  }
+}

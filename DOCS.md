@@ -204,6 +204,20 @@ A recompensa congelada não inclui atraso inicial. Ela otimiza qualidade, rebuff
 
 A conclusão é restrita: o Q-Learning supera o baseline estático em bitrate útil e estabilidade, mas não demonstra superioridade frente ao BOLA, e seu compromisso com RobustMPC depende de uma métrica ausente do objetivo. `results/dvb_abr_comparison/comparison_results.md` contém a análise completa; CSV, manifesto e atestação preservam as 75 avaliações, IC95% e hashes.
 
+## Startup e Novo Holdout — Etapa 5.4b
+
+`RewardConfig` passa a conter `startup_weight`. Para cada download anterior ao início da reprodução, a penalidade é `startup_weight × startup_delay_s / segment_duration_s`. O termo permanece zero por padrão, preservando a reprodução dos protocolos anteriores. O RobustMPC usa a mesma contabilização ao simular sequências futuras.
+
+Seis traces de 60 segmentos foram gerados sem consultar ou reamostrar os CSV anteriores. O modelo alterna regimes de 700, 2.500 e 6.800 kbps por uma cadeia de Markov e aplica suavização AR(1) no domínio logarítmico, ruído gaussiano e limites de 300–8.000 kbps. O protocolo DVB mantém o fator 10. Sementes, hashes e estatísticas estão em `bandwidth_traces/stage54b_trace_provenance.json`.
+
+Os três traces de validação têm sementes 54101–54103; o holdout usa 54901–54903. As duas primeiras rodadas variaram apenas o peso de startup. Nenhuma alcançou não inferioridade no atraso inicial, inclusive com pesos 1, 2 e 5. A causa observada foi uma ação de aumento antes do início da reprodução.
+
+A propriedade `TrainingConfig.startup_guard` corrige esse comportamento sem alterar protocolos antigos: quando habilitada, o agente usa a representação inferior até `playback_started=true`; depois disso, a Q-table volta a controlar todas as ações. O valor é persistido nos metadados do modelo e respeitado pelas CLIs e protocolos.
+
+Na terceira rodada, todos os candidatos cumpriram as margens de startup e rebuffering. `guard_wstartup050` foi selecionado por apresentar o maior delta médio de bitrate útil entre os elegíveis. Contra o estático, obteve startup 0,000 s de diferença, rebuffering −0,284 s, taxa de rebuffering −0,495 ponto percentual, bitrate útil −151 kbps com IC95% [−1.227; 924] e desvio-padrão do buffer −0,501 s com IC95% [−0,694; −0,308].
+
+A seleção é adaptativa e transparente: as duas rodadas malsucedidas permanecem em `results/dvb_startup_reward_tuning_round1/` e `results/dvb_startup_reward_tuning_round2_weight_refinement/`. Nenhuma delas, nem a terceira rodada, abriu os traces finais. A configuração congelada `dvb_uhd1_hfr_startup_guard_selected_protocol_config.json` deve ser versionada antes de qualquer avaliação no holdout.
+
 ## Parâmetros de Codificação (VVenC)
 
 Para os experimentos, o VVenC é configurado com os seguintes parâmetros base:

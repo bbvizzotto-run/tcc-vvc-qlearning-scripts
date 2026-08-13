@@ -33,6 +33,7 @@ O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 impl
 | Recompensa com startup e guarda pré-reprodução | Selecionada em validação (Etapa 5.4b) |
 | Avaliação no novo holdout de 60 segmentos | Executada uma única vez (Etapa 5.4c) |
 | Primeiro conteúdo VVC controlado e escada medida | Implementado (Etapa 5.5b) |
+| Preparação em fluxo do segundo conteúdo aberto | Implementado (Etapa 5.5c) |
 | Dataset VVC real e resultados completos | Pendente de execução com as fontes YUV |
 | Rede `tc/netem` | Pendente |
 
@@ -178,6 +179,11 @@ coincidiram com as taxas efetivas, `canonicalize_vvc_manifest.py` separa
 A escada resultante é `[1019, 1692, 2610, 3632]` kbps. O manifesto bruto,
 manifesto canônico, proveniências, licença e procedimento estão em
 `segment_manifests/stage55/`; os bitstreams e a fonte não são versionados.
+
+Para o segundo conteúdo, `prepare_y4m_source.py` valida a fonte Y4M/XZ e extrai
+somente o trecho de 60 s diretamente para YUV bruto, sem ocupar espaço com a
+descompressão integral. A configuração congelada usa Elephants Dream 1080p24,
+quadros 2880–4319; consulte `segment_manifests/stage55/README.md`.
 
 ### Importação de pacotes DVB-DASH VVC
 

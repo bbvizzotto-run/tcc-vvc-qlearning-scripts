@@ -12,5 +12,6 @@ models/*.npz
 artifacts/
 datasets/
 *.recon.yuv
-vvc_pipeline_config.local.json
+vvc_pipeline_config*.local.json
+y4m_source_config*.local.json
 dvb_protocol_config.local.json

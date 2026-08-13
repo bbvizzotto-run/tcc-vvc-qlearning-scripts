@@ -76,6 +76,9 @@ class AbrComparisonDefinition:
     parameter_policy: str
     study_status: str
     references: Mapping[str, str]
+    stage: str = "5.4a"
+    execution_policy: str = "post_hoc_extension"
+    previous_holdout_status: str = "not_applicable"
 
 
 @dataclass
@@ -110,6 +113,26 @@ def load_abr_comparison_definition(
     references = raw.get("references", {})
     if not isinstance(references, Mapping):
         raise ValueError("references deve ser um objeto")
+    stage = str(raw.get("stage", "5.4a"))
+    execution_policy = str(
+        raw.get("execution_policy", "post_hoc_extension")
+    )
+    previous_holdout_status = str(
+        raw.get("previous_holdout_status", "not_applicable")
+    )
+    if stage == "5.4c":
+        if execution_policy != "single_final_execution_after_versioned_freeze":
+            raise ValueError(
+                "a Etapa 5.4c requer política explícita de execução única"
+            )
+        if previous_holdout_status != "not_executed":
+            raise ValueError(
+                "a Etapa 5.4c requer holdout previamente não executado"
+            )
+        if not base.training_config.startup_guard:
+            raise ValueError("a Etapa 5.4c requer startup_guard congelada")
+        if base.reward_config.startup_weight <= 0:
+            raise ValueError("a Etapa 5.4c requer penalidade de startup congelada")
     return AbrComparisonDefinition(
         source_path=source_path,
         comparison_version=int(raw["comparison_version"]),
@@ -120,6 +143,9 @@ def load_abr_comparison_definition(
         parameter_policy=parameter_policy,
         study_status=str(raw["study_status"]),
         references={str(key): str(value) for key, value in references.items()},
+        stage=stage,
+        execution_policy=execution_policy,
+        previous_holdout_status=previous_holdout_status,
     )
 
 
@@ -541,11 +567,29 @@ def save_abr_comparison_result(
     _write_csv(paths["training_summary"], result.training_summary)
     base = definition.base_protocol
     assert base.segment_manifest_path is not None
+    training_scales = base.training_trace_scales or tuple(
+        1.0 for _ in base.training_trace_paths
+    )
+    evaluation_scales = base.evaluation_trace_scales or tuple(
+        1.0 for _ in base.evaluation_trace_paths
+    )
+    reward_scope = (
+        "the frozen project objective includes quality, startup delay, "
+        "post-startup rebuffering, switching, and low buffer"
+        if base.reward_config.startup_weight > 0
+        else (
+            "the frozen project objective includes quality, post-startup "
+            "rebuffering, switching, and low buffer; startup delay is reported "
+            "as a separate metric but is not part of the optimized objective"
+        )
+    )
     manifest = {
         "comparison_version": definition.comparison_version,
-        "stage": "5.4a",
+        "stage": definition.stage,
         "study_status": definition.study_status,
         "parameter_policy": definition.parameter_policy,
+        "execution_policy": definition.execution_policy,
+        "previous_holdout_status": definition.previous_holdout_status,
         "controllers": list(CONTROLLERS),
         "baselines": {
             "static": {
@@ -560,11 +604,7 @@ def save_abr_comparison_result(
             "only completed-segment throughput, current buffer, and public "
             "segment metadata; no current-segment bandwidth"
         ),
-        "reward_scope": (
-            "the frozen project objective includes quality, post-startup "
-            "rebuffering, switching, and low buffer; startup delay is reported "
-            "as a separate metric but is not part of the optimized objective"
-        ),
+        "reward_scope": reward_scope,
         "confidence_level": base.confidence_level,
         "confidence_method": "two-sided Student t interval for the mean",
         "overall_method": (
@@ -583,6 +623,26 @@ def save_abr_comparison_result(
             "training_config": asdict(base.training_config),
             "reward_config": asdict(base.reward_config),
         },
+        "comparison_config": {
+            "path": definition.source_path.name,
+            "sha256": _sha256(definition.source_path),
+        },
+        "training_traces": [
+            {
+                "path": path.name,
+                "sha256": _sha256(path),
+                "bandwidth_scale": scale,
+            }
+            for path, scale in zip(base.training_trace_paths, training_scales)
+        ],
+        "evaluation_traces": [
+            {
+                "path": path.name,
+                "sha256": _sha256(path),
+                "bandwidth_scale": scale,
+            }
+            for path, scale in zip(base.evaluation_trace_paths, evaluation_scales)
+        ],
         "segment_manifest": {
             **load_segment_manifest(base.segment_manifest_path).metadata(),
             "path": base.segment_manifest_path.name,
@@ -597,6 +657,12 @@ def save_abr_comparison_result(
             "not persisted; deterministic q_table hashes are in training_summary.csv"
         ),
     }
+    execution_marker = destination / ".execution_started.json"
+    if execution_marker.is_file():
+        manifest["execution_marker"] = {
+            "path": execution_marker.name,
+            "sha256": _sha256(execution_marker),
+        }
     with paths["manifest"].open("w", encoding="utf-8") as handle:
         json.dump(manifest, handle, ensure_ascii=False, indent=2, sort_keys=True)
         handle.write("\n")

@@ -112,6 +112,7 @@ class EncoderConfig:
     qpa: bool = True
     internal_bit_depth: int | None = None
     refresh_type: str = "idr_no_radl"
+    poc0idr: bool = True
     threads: int | None = None
     mt_profile: int = 0
     minimum_version: str = "1.13.0"
@@ -129,6 +130,13 @@ class EncoderConfig:
             raise ValueError("encoder.internal_bit_depth deve ser 8 ou 10")
         if not self.refresh_type.strip():
             raise ValueError("encoder.refresh_type não pode ser vazio")
+        if (
+            self.refresh_type.strip().lower() == "idr_no_radl"
+            and not self.poc0idr
+        ):
+            raise ValueError(
+                "encoder.poc0idr deve ser true quando refresh_type é idr_no_radl"
+            )
         if self.threads is not None and self.threads <= 0:
             raise ValueError("encoder.threads deve ser positivo")
         if self.mt_profile not in (0, 1, 2, 3):
@@ -237,6 +245,7 @@ def load_pipeline_config(path: str | Path) -> PipelineConfig:
             else source.bit_depth
         ),
         refresh_type=str(encoder_raw.get("refresh_type", "idr_no_radl")),
+        poc0idr=bool(encoder_raw.get("poc0idr", True)),
         threads=(
             int(encoder_raw["threads"])
             if encoder_raw.get("threads") is not None
@@ -331,6 +340,8 @@ def build_encoder_command(config: PipelineConfig, job: EncodingJob) -> list[str]
         "1" if config.encoder.qpa else "0",
         "--refreshtype",
         config.encoder.refresh_type,
+        "--additional",
+        f"POC0IDR={1 if config.encoder.poc0idr else 0}",
         "--mtprofile",
         str(config.encoder.mt_profile),
     ]

@@ -87,6 +87,8 @@ Depois de copiar o JSON e apontar `input_yuv` para a fonte real, remova `--dry-r
 
 Arquivos existentes não são substituídos por padrão. `--resume` reaproveita uma codificação parcial somente quando a primeira linha do log contém exatamente o comando esperado; a reconstrução e a medição são refeitas. `--overwrite` deve ser usado somente para repetir conscientemente toda a configuração. O pipeline não concatena nem repete fontes curtas. Para os traces de avaliação existentes, são necessários 30 segmentos, isto é, 60 s quando cada segmento dura 2 s.
 
+Quando `refresh_type` é `idr_no_radl`, a configuração `poc0idr` deve permanecer `true`. O pipeline traduz essa combinação para `--additional POC0IDR=1`, exigência do VVenC 1.14.0 para iniciar cada bitstream segmentado com um IDR independentemente decodificável. A combinação `idr_no_radl` com `poc0idr=false` é rejeitada antes da execução.
+
 ## Importação DVB-DASH — Etapa 5.2b
 
 `import_dvb_dash.py` converte um pacote DASH estático já extraído para este mesmo contrato. São aceitos `SegmentTemplate` com duração fixa ou `SegmentTimeline`, `SegmentList` e `SegmentBase` com índice `sidx`. O importador seleciona somente adaptações de vídeo, resolve os caminhos locais, mede o segmento de mídia completo e valida se todas as representações possuem a mesma linha temporal.

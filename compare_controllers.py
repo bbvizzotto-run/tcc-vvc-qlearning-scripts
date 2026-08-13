@@ -53,15 +53,22 @@ def main() -> int:
         if args.segment_manifest is not None
         else None
     )
-    agent, encoder, config, reward_config, _ = components_from_model(
+    agent, encoder, config, reward_config, metadata = components_from_model(
         args.model,
         seed=args.seed,
+    )
+    startup_guard = bool(
+        dict(metadata.get("training_config", {})).get(
+            "startup_guard",
+            False,
+        )
     )
     _, static_summary = run_static_experiment(
         trace,
         config,
         args.segments,
         segment_manifest,
+        startup_guard,
     )
     _, q_summary = run_q_learning_experiment(
         trace,

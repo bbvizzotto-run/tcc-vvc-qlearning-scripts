@@ -431,6 +431,7 @@ def execute_protocol(definition: ProtocolDefinition) -> ProtocolResult:
                 encoder,
                 definition.reward_config,
                 segment_manifest=segment_manifest,
+                startup_guard=definition.training_config.startup_guard,
             )
             for summary in (static_summary, q_summary):
                 raw_runs.append(

@@ -222,6 +222,7 @@ def _validation_rows(
                     encoder,
                     protocol.reward_config,
                     segment_manifest=segment_manifest,
+                    startup_guard=protocol.training_config.startup_guard,
                 )
                 rows.append(
                     _metric_row(

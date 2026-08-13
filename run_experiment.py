@@ -85,9 +85,15 @@ def main() -> int:
     else:
         if args.model is None:
             raise SystemExit("--model é obrigatório para --controller q-learning")
-        agent, encoder, config, reward_config, _ = components_from_model(
+        agent, encoder, config, reward_config, metadata = components_from_model(
             args.model,
             seed=args.seed,
+        )
+        startup_guard = bool(
+            dict(metadata.get("training_config", {})).get(
+                "startup_guard",
+                False,
+            )
         )
         rows, summary = run_q_learning_experiment(
             trace,
@@ -97,6 +103,7 @@ def main() -> int:
             reward_config,
             args.segments,
             segment_manifest,
+            startup_guard,
         )
     csv_path, summary_path = save_results(rows, summary, args.output)
 

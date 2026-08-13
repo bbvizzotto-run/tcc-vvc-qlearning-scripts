@@ -452,6 +452,7 @@ def execute_reward_tuning(
                     encoder,
                     candidate.reward_config,
                     segment_manifest=segment_manifest,
+                    startup_guard=training_config.startup_guard,
                 )
                 raw_runs.append(
                     _row(

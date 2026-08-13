@@ -52,6 +52,7 @@ class TrainingConfig:
     epsilon_decay: float = 0.995
     buffer_boundaries_s: tuple[float, ...] = (2.0, 4.0, 6.0, 8.0, 12.0, 16.0)
     seed: int = 42
+    startup_guard: bool = False
 
     def __post_init__(self) -> None:
         if self.episodes <= 0:
@@ -71,6 +72,7 @@ class QLearningDecision:
     action: str
     previous_bitrate_kbps: int
     bitrate_kbps: int
+    forced_startup: bool = False
 
 
 @dataclass(frozen=True)
@@ -181,9 +183,16 @@ class QLearningController:
         self,
         buffer_s: float,
         explore: bool,
+        playback_started: bool = True,
+        startup_guard: bool = False,
     ) -> QLearningDecision:
         state_index = self.current_state(buffer_s)
-        action_index = self.agent.choose_action(state_index, explore=explore)
+        forced_startup = startup_guard and not playback_started
+        action_index = (
+            0
+            if forced_startup
+            else self.agent.choose_action(state_index, explore=explore)
+        )
         previous_bitrate = self.current_bitrate_kbps
         delta = (-1, 0, 1)[action_index]
         self.current_bitrate_index = min(
@@ -196,6 +205,7 @@ class QLearningController:
             action=self.agent.get_action_meaning(action_index),
             previous_bitrate_kbps=previous_bitrate,
             bitrate_kbps=self.current_bitrate_kbps,
+            forced_startup=forced_startup,
         )
 
     def observe_throughput(self, throughput_kbps: float) -> None:
@@ -329,7 +339,12 @@ def train_q_learning(
         total_td_error = 0.0
 
         while not environment.done:
-            decision = controller.select_bitrate(environment.buffer_s, explore=True)
+            decision = controller.select_bitrate(
+                environment.buffer_s,
+                explore=True,
+                playback_started=environment.playback_started,
+                startup_guard=training_config.startup_guard,
+            )
             result = environment.step(decision.bitrate_kbps)
             controller.observe_throughput(result.bandwidth_kbps)
             reward = calculate_reward(
@@ -402,6 +417,7 @@ def run_q_learning_experiment(
     reward_config: RewardConfig,
     segments: int | None = None,
     segment_manifest: SegmentManifest | None = None,
+    startup_guard: bool = False,
 ) -> tuple[list[dict[str, object]], dict[str, object]]:
     trace = list(bandwidth_trace_kbps)
     if segments is not None:
@@ -424,7 +440,12 @@ def run_q_learning_experiment(
     total_reward = 0.0
 
     while not environment.done:
-        decision = controller.select_bitrate(environment.buffer_s, explore=False)
+        decision = controller.select_bitrate(
+            environment.buffer_s,
+            explore=False,
+            playback_started=environment.playback_started,
+            startup_guard=startup_guard,
+        )
         result = environment.step(decision.bitrate_kbps)
         controller.observe_throughput(result.bandwidth_kbps)
         reward = calculate_reward(
@@ -442,6 +463,7 @@ def run_q_learning_experiment(
                 "state_index": decision.state_index,
                 "action_index": decision.action_index,
                 "action": decision.action,
+                "forced_startup": decision.forced_startup,
                 **asdict(reward),
             }
         )
@@ -462,6 +484,7 @@ def run_q_learning_experiment(
             "average_payload_bitrate_kbps": payload_kbits / video_duration_s,
             "buffer_mean_s": fmean(buffers),
             "buffer_std_s": pstdev(buffers),
+            "startup_guard": startup_guard,
             "configuration": asdict(experiment_config),
             "segment_manifest": (
                 segment_manifest.metadata()

@@ -1,0 +1,73 @@
+{
+  "tuning_version": 4,
+  "stage": "5.4b-startup-guard",
+  "base_protocol": "dvb_uhd1_hfr_startup_guard_protocol_config.json",
+  "noninferiority_margin_percent": 0.0,
+  "startup_noninferiority_margin_s": 0.0,
+  "refinement_provenance": {
+    "reason": "weight-only rounds failed startup non-inferiority; the guard removes pre-playback up-switching",
+    "round_1_results": "results/dvb_startup_reward_tuning_round1/manifest.json",
+    "round_2_results": "results/dvb_startup_reward_tuning_round2_weight_refinement/manifest.json",
+    "evaluation_status": "holdout_not_opened"
+  },
+  "validation_traces": [
+    {
+      "path": "bandwidth_traces/stage54b_validation_low_start.csv",
+      "bandwidth_scale": 10.0
+    },
+    {
+      "path": "bandwidth_traces/stage54b_validation_mixed_start.csv",
+      "bandwidth_scale": 10.0
+    },
+    {
+      "path": "bandwidth_traces/stage54b_validation_high_start.csv",
+      "bandwidth_scale": 10.0
+    }
+  ],
+  "candidates": [
+    {
+      "id": "guard_wstartup005",
+      "reward_config": {
+        "quality_weight": 1.0,
+        "rebuffering_weight": 10.0,
+        "switch_weight": 0.25,
+        "low_buffer_weight": 2.0,
+        "startup_weight": 0.05,
+        "target_buffer_s": 8.0
+      }
+    },
+    {
+      "id": "guard_wstartup010",
+      "reward_config": {
+        "quality_weight": 1.0,
+        "rebuffering_weight": 10.0,
+        "switch_weight": 0.25,
+        "low_buffer_weight": 2.0,
+        "startup_weight": 0.1,
+        "target_buffer_s": 8.0
+      }
+    },
+    {
+      "id": "guard_wstartup025",
+      "reward_config": {
+        "quality_weight": 1.0,
+        "rebuffering_weight": 10.0,
+        "switch_weight": 0.25,
+        "low_buffer_weight": 2.0,
+        "startup_weight": 0.25,
+        "target_buffer_s": 8.0
+      }
+    },
+    {
+      "id": "guard_wstartup050",
+      "reward_config": {
+        "quality_weight": 1.0,
+        "rebuffering_weight": 10.0,
+        "switch_weight": 0.25,
+        "low_buffer_weight": 2.0,
+        "startup_weight": 0.5,
+        "target_buffer_s": 8.0
+      }
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import numpy as np
 
 from experiment import ExperimentConfig
 from q_learning_pipeline import (
+    QLearningController,
     RewardConfig,
     StateEncoder,
     TrainingConfig,
@@ -11,10 +12,41 @@ from q_learning_pipeline import (
     run_q_learning_experiment,
     train_q_learning,
 )
+from q_learning_agent import QLearningAgent
 from streaming_env import SegmentResult
 
 
 class QLearningPipelineTest(unittest.TestCase):
+    def test_startup_guard_forces_lowest_representation(self):
+        encoder = StateEncoder([500, 2000], [2, 4])
+        agent = QLearningAgent(
+            encoder.num_states,
+            3,
+            epsilon=0,
+            epsilon_min=0,
+            seed=1,
+        )
+        agent.q_table[:, 2] = 10
+        controller = QLearningController(agent, encoder)
+
+        guarded = controller.select_bitrate(
+            2,
+            explore=False,
+            playback_started=False,
+            startup_guard=True,
+        )
+        after_start = controller.select_bitrate(
+            4,
+            explore=False,
+            playback_started=True,
+            startup_guard=True,
+        )
+
+        self.assertEqual(guarded.bitrate_kbps, 500)
+        self.assertTrue(guarded.forced_startup)
+        self.assertEqual(after_start.bitrate_kbps, 2000)
+        self.assertFalse(after_start.forced_startup)
+
     def test_encoder_reserves_state_for_unknown_throughput(self):
         encoder = StateEncoder([500, 1000, 2000], [2, 4, 8])
         unknown = encoder.encode(0, 500, None)
@@ -44,6 +76,37 @@ class QLearningPipelineTest(unittest.TestCase):
         clean_reward = calculate_reward(clean, 1000, 500, 2000, 2, config)
         stalled_reward = calculate_reward(stalled, 1000, 500, 2000, 2, config)
         self.assertGreater(clean_reward.reward, stalled_reward.reward)
+
+    def test_reward_penalizes_startup_when_weight_is_enabled(self):
+        base = dict(
+            segment=0,
+            bitrate_kbps=1000,
+            bandwidth_kbps=1000,
+            segment_size_kbits=2000,
+            download_time_s=2,
+            wait_time_s=0,
+            buffer_before_s=0,
+            buffer_after_s=2,
+            rebuffering_s=0,
+            playback_started=False,
+        )
+        immediate = SegmentResult(**base, startup_delay_s=0)
+        delayed = SegmentResult(**base, startup_delay_s=2)
+        config = RewardConfig(startup_weight=0.5)
+
+        immediate_reward = calculate_reward(
+            immediate, 1000, 500, 2000, 2, config
+        )
+        delayed_reward = calculate_reward(
+            delayed, 1000, 500, 2000, 2, config
+        )
+
+        self.assertEqual(immediate_reward.startup_penalty, 0)
+        self.assertEqual(delayed_reward.startup_penalty, 0.5)
+        self.assertAlmostEqual(
+            immediate_reward.reward - delayed_reward.reward,
+            0.5,
+        )
 
     def test_training_is_reproducible_and_evaluable(self):
         experiment = ExperimentConfig(

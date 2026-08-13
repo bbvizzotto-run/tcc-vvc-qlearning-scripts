@@ -466,6 +466,7 @@ def execute_abr_comparison(
                 encoder,
                 base.reward_config,
                 segment_manifest=segment_manifest,
+                startup_guard=base.training_config.startup_guard,
             )
             summaries.append(
                 _q_learning_metrics(

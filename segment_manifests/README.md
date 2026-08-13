@@ -103,6 +103,13 @@ duas entradas, mapeamento entre alvo e taxa medida, estatísticas de qualidade e
 resultado das validações. Consulte `stage55/README.md` para a execução congelada
 do Big Buck Bunny.
 
+Fontes distribuídas como Y4M comprimido com XZ podem ser normalizadas com
+`prepare_y4m_source.py`. A ferramenta valida o SHA-256 do arquivo completo e
+envia a descompressão ao FFmpeg por pipe, evitando materializar o Y4M integral.
+Ela valida o cabeçalho Y4M e o tamanho exato do trecho antes de publicar a saída
+e sua proveniência. A configuração congelada do segundo conteúdo está em
+`y4m_source_config.elephants_dream.json`.
+
 ## Importação DVB-DASH — Etapa 5.2b
 
 `import_dvb_dash.py` converte um pacote DASH estático já extraído para este mesmo contrato. São aceitos `SegmentTemplate` com duração fixa ou `SegmentTimeline`, `SegmentList` e `SegmentBase` com índice `sidx`. O importador seleciona somente adaptações de vídeo, resolve os caminhos locais, mede o segmento de mídia completo e valida se todas as representações possuem a mesma linha temporal.

@@ -67,3 +67,35 @@ JSON de configuração local não era versionado. O hash registrado do módulo,
 `2cee8323...`, coincide com `vvc_segment_pipeline.py` desse commit usando finais
 de linha CRLF do Windows. Essa observação é mantida; os resultados não são
 apresentados como provenientes de um checkout limpo.
+
+## Segundo conteúdo: Elephants Dream
+
+A Etapa 5.5c mantém resolução, frequência, duração e posição temporal do
+primeiro conteúdo, alterando somente a obra:
+
+- fonte: `elephants_dream_1080p24.y4m.xz`, publicada pelo Xiph;
+- URL: <https://media.xiph.org/video/derf/y4m/elephants_dream_1080p24.y4m.xz>;
+- licença: Creative Commons Attribution 2.5;
+- página oficial da obra: <https://orange.blender.org/press/>;
+- SHA-256 oficial do XZ:
+  `aef14c7ff450cd44e75760b6c0bef5ed9dc62f6af4d8c68816128ea74fb782b4`;
+- recorte: quadros 2880–4319, equivalentes a 120–180 s;
+- saída: 1440 quadros, 1920×1080, 24 fps, YUV 4:2:0 de 8 bits;
+- tamanho esperado do trecho normalizado: `4478976000` bytes.
+
+O arquivo XZ possui cerca de 7,1 GB e o Y4M completo, cerca de 45 GB. O comando
+abaixo verifica todo o XZ e o descomprime em fluxo para o FFmpeg, gravando
+somente os 60 s necessários:
+
+```powershell
+python prepare_y4m_source.py `
+  --config y4m_source_config.elephants_dream.json `
+  --input "D:\vvc-stage55\sources\originals\elephants_dream_1080p24.y4m.xz" `
+  --output "D:\vvc-stage55\sources\normalized\elephants_dream_1080p24_60s.yuv" `
+  --provenance "D:\vvc-stage55\sources\normalized\elephants_dream_1080p24_60s.provenance.json"
+```
+
+O script rejeita hash, geometria, frequência, entrelaçamento, chroma ou tamanho
+de saída divergentes e registra configuração efetiva, cabeçalho Y4M, FFmpeg,
+runtime, commit Git e hashes em uma proveniência própria. O próximo pipeline
+VVC deve partir do exemplo `vvc_pipeline_config.elephants_dream.example.json`.

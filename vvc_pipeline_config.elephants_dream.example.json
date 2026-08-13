@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "source": {
+    "name": "elephants_dream",
+    "input_yuv": "artifacts/stage55/sources/elephants_dream_1080p24_60s.yuv",
+    "width": 1920,
+    "height": 1080,
+    "fps_num": 24,
+    "fps_den": 1,
+    "bit_depth": 8,
+    "start_frame": 0,
+    "segment_count": 60,
+    "segment_duration_s": 1.0
+  },
+  "bitrates_kbps": [1000, 2000, 4000, 8000],
+  "output_dir": "artifacts/stage55/encoded/full",
+  "manifest_path": "artifacts/stage55/manifests/elephants_dream_full.csv",
+  "encoder": {
+    "executable": "vvencapp",
+    "preset": "medium",
+    "passes": 2,
+    "qpa": true,
+    "internal_bit_depth": 8,
+    "refresh_type": "idr_no_radl",
+    "poc0idr": true,
+    "threads": 8,
+    "mt_profile": 0,
+    "minimum_version": "1.13.0"
+  },
+  "decoder": {
+    "executable": "vvdecapp",
+    "compute_psnr_y": true,
+    "keep_reconstructions": false
+  },
+  "hash_source": true
+}

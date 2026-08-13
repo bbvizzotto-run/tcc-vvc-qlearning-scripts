@@ -1,0 +1,34 @@
+{
+  "stage": "5.4c",
+  "status": "single_final_holdout_execution_complete",
+  "executed_at_utc": "2026-08-13T12:01:00.400941+00:00",
+  "execution_count": 1,
+  "rerun_attempted": false,
+  "base_main_merge_commit": "690b421043103e9a33e2c123ba34f6d38335a073",
+  "algorithm_and_protocol_freeze_commit": "680a16f9dda6fc3fc2da99993dc8ff5dfc46a261",
+  "pre_execution_attestation_commit": "7403247",
+  "post_execution_algorithm_changes": false,
+  "command": "python run_abr_comparison.py --config dvb_startup_holdout_comparison_config.json --output-dir results/dvb_startup_holdout_final",
+  "execution_policy": "single_final_execution_after_versioned_freeze",
+  "inputs_sha256": {
+    "dvb_startup_holdout_comparison_config.json": "b29aaaec1ab8194f86e2e08c5e1ebf2e2ab531c3c3130d2b48359d1cc4815d39",
+    "dvb_uhd1_hfr_startup_guard_selected_protocol_config.json": "42cef383048ba00a644b0888b0d0681011d3cf1f5e1c079b06c704b28f16c657",
+    "segment_manifests/dvb_vvc_uhd1_hfr.csv": "c529b3942939da3a71d94832fa71b572f5b31a843dd3481b739de57145b33fa7",
+    "bandwidth_traces/stable.csv": "45219bc737bd9cf4f7cfd837cf706b19d3c37f97c168705eeb2e16f169737bbf",
+    "bandwidth_traces/fluctuating.csv": "1e7bdcef6438c8a1025b9e79ab28daa8330e5e595dc7e2310b0a9896afeb1566",
+    "bandwidth_traces/stage54b_evaluation_low_start.csv": "36ae39bb673b31e26cd57858283a7e87d00fd3188dbeeb12a936613eaeeceee5",
+    "bandwidth_traces/stage54b_evaluation_mixed_start.csv": "9ad25f9f8b791c01f088451391e9d4b8ef11e6ca351190560592b7b314165322",
+    "bandwidth_traces/stage54b_evaluation_high_start.csv": "4862b37c802420223797dce99ac3c11193ad1137d02d619450cb0f31ef9165b9"
+  },
+  "outputs_sha256": {
+    ".execution_started.json": "44063bf10cc076f8c4f8195e4b1636bda977ae990b5d9ca3f513da9d2b3a9dc2",
+    "aggregate.csv": "37539db4f41c0ee2923e7f7ccd4b79b16367ff9757cebec6eb004c583cd1f2a7",
+    "paired_differences.csv": "03f1371de530a70b4508db5671a68db0850b9175d7d372cf30d34f0f69c91780",
+    "raw_runs.csv": "4e8584b0c36dcae02a14c6f09e17442106a76fa80a535ba09daf3b3de2498dee",
+    "training_summary.csv": "9c3d643efb4a49a10e66067c78f31428f861617de8a3852221d2b5ee6dbf10aa",
+    "manifest.json": "07b780cfe3df96ff09271608e67e5e0a3e00e6c07c6a915ea3b9e93e3df71325"
+  },
+  "training_runs": 5,
+  "evaluation_runs": 75,
+  "models_versioned": false
+}

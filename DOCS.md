@@ -216,7 +216,19 @@ A propriedade `TrainingConfig.startup_guard` corrige esse comportamento sem alte
 
 Na terceira rodada, todos os candidatos cumpriram as margens de startup e rebuffering. `guard_wstartup050` foi selecionado por apresentar o maior delta médio de bitrate útil entre os elegíveis. Contra o estático, obteve startup 0,000 s de diferença, rebuffering −0,284 s, taxa de rebuffering −0,495 ponto percentual, bitrate útil −151 kbps com IC95% [−1.227; 924] e desvio-padrão do buffer −0,501 s com IC95% [−0,694; −0,308].
 
-A seleção é adaptativa e transparente: as duas rodadas malsucedidas permanecem em `results/dvb_startup_reward_tuning_round1/` e `results/dvb_startup_reward_tuning_round2_weight_refinement/`. Nenhuma delas, nem a terceira rodada, abriu os traces finais. A configuração congelada `dvb_uhd1_hfr_startup_guard_selected_protocol_config.json` deve ser versionada antes de qualquer avaliação no holdout.
+A seleção é adaptativa e transparente: as duas rodadas malsucedidas permanecem em `results/dvb_startup_reward_tuning_round1/` e `results/dvb_startup_reward_tuning_round2_weight_refinement/`. Nenhuma delas, nem a terceira rodada, abriu os traces finais. A configuração congelada `dvb_uhd1_hfr_startup_guard_selected_protocol_config.json` foi versionada antes da avaliação única da Etapa 5.4c.
+
+## Avaliação Única do Novo Holdout — Etapa 5.4c
+
+`dvb_startup_holdout_comparison_config.json` reutiliza sem ajuste os parâmetros dos baselines da Etapa 5.4a e a política selecionada na 5.4b. O código e a configuração foram congelados no commit `680a16f`; `stage54c_pre_execution_attestation.json`, versionado no commit `7403247`, registra hashes e execução anterior igual a zero. A CLI cria `results/dvb_startup_holdout_final/` de forma exclusiva e grava uma trava antes de carregar os traces. Se o diretório já existir, uma nova execução é recusada.
+
+A execução única produziu 75 avaliações: cinco controladores, cinco sementes e três traces de 60 segmentos. As diferenças são pareadas por semente; os traces são promediados dentro de cada semente antes do IC95%.
+
+Contra o estático, o Q-Learning manteve startup, reduziu rebuffering em 1,015 s, IC95% [−1,481; −0,549], reduziu o desvio-padrão do buffer em 0,382 s, IC95% [−0,477; −0,286], e aumentou a recompensa em 0,217, IC95% [0,125; 0,310]. O delta de bitrate útil foi +313 kbps, IC95% [−165; 791], inconclusivo, e houve mais trocas.
+
+Contra BOLA-BASIC, o bitrate útil aumentou 573 kbps, IC95% [95; 1.050], e o desvio do buffer caiu 0,137 s, IC95% [−0,233; −0,042], sem diferença conclusiva em startup, rebuffering ou recompensa. Contra throughput e RobustMPC, o Q-Learning entregou maior bitrate útil e menor variabilidade do buffer, mas sofreu mais rebuffering e obteve recompensa objetiva inferior; frente ao RobustMPC, o startup foi 1,310 s menor.
+
+Os resultados sustentam competitividade com BOLA-BASIC e melhora frente ao estático, mas não superioridade geral. Os IC95% não são corrigidos por comparações múltiplas, `n=5` representa sementes de treinamento e o escopo permanece um conteúdo DVB com duas representações. `results/dvb_startup_holdout_final/` preserva CSVs, manifesto, análise e atestação.
 
 ## Parâmetros de Codificação (VVenC)
 

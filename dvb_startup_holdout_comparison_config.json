@@ -1,0 +1,31 @@
+{
+  "comparison_version": 2,
+  "stage": "5.4c",
+  "base_protocol": "dvb_uhd1_hfr_startup_guard_selected_protocol_config.json",
+  "parameter_policy": "frozen_before_first_execution_no_evaluation_tuning",
+  "execution_policy": "single_final_execution_after_versioned_freeze",
+  "previous_holdout_status": "not_executed",
+  "study_status": "confirmatory_holdout_after_stage_5_4b_validation_selection",
+  "throughput": {
+    "history_window": 5,
+    "safety_factor": 0.85
+  },
+  "bola_basic": {
+    "minimum_buffer_s": 10.0,
+    "buffer_target_s": 20.0
+  },
+  "robust_mpc": {
+    "horizon": 5,
+    "history_window": 5,
+    "error_window": 5
+  },
+  "references": {
+    "stage_5_4a_baseline_snapshot": "dvb_abr_comparison_config.json",
+    "stage_5_4b_selection_manifest": "results/dvb_startup_guard_tuning/manifest.json",
+    "trace_provenance": "bandwidth_traces/stage54b_trace_provenance.json",
+    "bola": "https://arxiv.org/abs/1601.06748",
+    "robust_mpc": "https://doi.org/10.1145/2785956.2787486",
+    "pensieve_robust_mpc_reference": "https://github.com/hongzimao/pensieve/blob/master/test/mpc.py",
+    "dashjs_bola_reference": "https://github.com/Dash-Industry-Forum/dash.js/blob/development/src/streaming/rules/abr/BolaRule.js"
+  }
+}

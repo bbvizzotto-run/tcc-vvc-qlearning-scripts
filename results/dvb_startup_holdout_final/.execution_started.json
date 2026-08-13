@@ -1,0 +1,8 @@
+{
+  "config": "dvb_startup_holdout_comparison_config.json",
+  "execution_policy": "single_final_execution_after_versioned_freeze",
+  "output_dir": "results/dvb_startup_holdout_final",
+  "stage": "5.4c",
+  "started_at_utc": "2026-08-13T12:01:00.400941+00:00",
+  "status": "execution_started"
+}

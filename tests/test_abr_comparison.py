@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from abr_baselines import BolaConfig, RobustMpcConfig, ThroughputConfig
@@ -9,6 +10,10 @@ from abr_comparison import (
     execute_abr_comparison,
     load_abr_comparison_definition,
     save_abr_comparison_result,
+)
+from run_abr_comparison import (
+    FINAL_HOLDOUT_POLICY,
+    prepare_final_holdout_execution,
 )
 from experiment import ExperimentConfig
 from experimental_protocol import ProtocolDefinition
@@ -155,6 +160,78 @@ class AbrComparisonTest(unittest.TestCase):
             )
             with self.assertRaisesRegex(ValueError, "congelar parâmetros"):
                 load_abr_comparison_definition(comparison)
+
+    def test_stage_54c_requires_explicit_single_execution_policy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            definition = self._fixture(root)
+            protocol = {
+                "protocol_version": 5,
+                "seeds": [3, 7],
+                "training_traces": ["train.csv"],
+                "evaluation_traces": ["evaluation_a.csv"],
+                "experiment_config": {"bitrates_kbps": [500, 2000]},
+                "training_config": {
+                    "episodes": 1,
+                    "buffer_boundaries_s": [2],
+                    "startup_guard": True,
+                },
+                "reward_config": {"startup_weight": 0.5},
+                "segment_manifest": "segments.csv",
+            }
+            definition.base_protocol.source_path.write_text(
+                json.dumps(protocol), encoding="utf-8"
+            )
+            comparison = {
+                "comparison_version": 2,
+                "stage": "5.4c",
+                "base_protocol": definition.base_protocol.source_path.name,
+                "parameter_policy": (
+                    "frozen_before_first_execution_no_evaluation_tuning"
+                ),
+                "study_status": "test",
+                "previous_holdout_status": "not_executed",
+                "throughput": {},
+                "bola_basic": {},
+                "robust_mpc": {},
+            }
+            definition.source_path.write_text(
+                json.dumps(comparison), encoding="utf-8"
+            )
+            with self.assertRaisesRegex(ValueError, "execução única"):
+                load_abr_comparison_definition(definition.source_path)
+
+            comparison["execution_policy"] = FINAL_HOLDOUT_POLICY
+            definition.source_path.write_text(
+                json.dumps(comparison), encoding="utf-8"
+            )
+            loaded = load_abr_comparison_definition(definition.source_path)
+            self.assertEqual(loaded.stage, "5.4c")
+            self.assertEqual(loaded.execution_policy, FINAL_HOLDOUT_POLICY)
+
+    def test_final_holdout_execution_refuses_an_existing_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            definition = replace(
+                self._fixture(root),
+                stage="5.4c",
+                execution_policy=FINAL_HOLDOUT_POLICY,
+                previous_holdout_status="not_executed",
+            )
+            output = root / "final"
+            marker = prepare_final_holdout_execution(
+                definition,
+                output,
+                definition.source_path,
+            )
+            self.assertEqual(marker, output / ".execution_started.json")
+            self.assertTrue(marker.is_file())
+            with self.assertRaisesRegex(SystemExit, "diretório do holdout"):
+                prepare_final_holdout_execution(
+                    definition,
+                    output,
+                    definition.source_path,
+                )
 
 
 if __name__ == "__main__":

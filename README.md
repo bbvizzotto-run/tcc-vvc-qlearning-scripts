@@ -6,7 +6,7 @@ Este repositório contém scripts e materiais relacionados ao trabalho de conclu
 
 ## Status da Implementação
 
-O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico, a Etapa 4 melhora a generalização a rajadas e a Etapa 5.1 conecta tamanhos medidos ao simulador. A **Etapa 5.2** automatiza a codificação controlada com VVenC, a **Etapa 5.2b** importa pacotes DVB-DASH VVC reais, a **Etapa 5.3** seleciona a recompensa em validação e a avalia uma única vez nos benchmarks congelados, a **Etapa 5.4a** adiciona baselines competitivos e a **Etapa 5.4b** corrige o objetivo de startup e congela um novo holdout.
+O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico, a Etapa 4 melhora a generalização a rajadas e a Etapa 5.1 conecta tamanhos medidos ao simulador. A **Etapa 5.2** automatiza a codificação controlada com VVenC, a **Etapa 5.2b** importa pacotes DVB-DASH VVC reais, a **Etapa 5.3** seleciona a recompensa em validação e a avalia uma única vez nos benchmarks congelados, a **Etapa 5.4a** adiciona baselines competitivos, a **Etapa 5.4b** corrige o objetivo de startup e congela um novo holdout e a **Etapa 5.4c** executa esse holdout uma única vez.
 
 | Componente | Estado atual |
 | :--- | :--- |
@@ -31,7 +31,7 @@ O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 impl
 | Avaliação final da recompensa selecionada | Implementado (Etapa 5.3b) |
 | Comparação com throughput, BOLA-BASIC e RobustMPC | Implementado (Etapa 5.4a) |
 | Recompensa com startup e guarda pré-reprodução | Selecionada em validação (Etapa 5.4b) |
-| Avaliação no novo holdout de 60 segmentos | Congelada, ainda não executada |
+| Avaliação no novo holdout de 60 segmentos | Executada uma única vez (Etapa 5.4c) |
 | Dataset VVC real e resultados completos | Pendente de execução com as fontes YUV |
 | Rede `tc/netem` | Pendente |
 
@@ -271,7 +271,15 @@ As primeiras rodadas mostraram que elevar o peso até 5 não eliminava o startup
 
 Com a guarda, `startup_weight=0,5` foi selecionado em validação: startup idêntico ao estático, redução de 0,495 ponto percentual na taxa de rebuffering e diferença inconclusiva de −151 kbps no bitrate útil, IC95% [−1.227; 924]. As rodadas intermediárias foram preservadas para auditoria.
 
-O holdout `stage54b_evaluation_*` **não foi executado**. A entrada congelada para essa avaliação futura é `dvb_uhd1_hfr_startup_guard_selected_protocol_config.json`. Resultados de seleção, hashes e limitações estão em `results/dvb_startup_guard_tuning/`.
+Durante a seleção, o holdout `stage54b_evaluation_*` **não foi executado**. A entrada congelada `dvb_uhd1_hfr_startup_guard_selected_protocol_config.json` foi posteriormente avaliada uma única vez na Etapa 5.4c.
+
+```bash
+python run_abr_comparison.py \
+  --config dvb_startup_holdout_comparison_config.json \
+  --output-dir results/dvb_startup_holdout_final
+```
+
+No holdout, o Q-Learning reduziu rebuffering frente ao estático e aumentou o bitrate útil frente ao BOLA-BASIC, mantendo startup equivalente a ambos. Throughput e RobustMPC obtiveram menos rebuffering e maior recompensa objetiva, enquanto o Q-Learning entregou mais bitrate útil e buffer menos variável. A conclusão é de competitividade parcial, não de superioridade geral. Resultados, IC95%, hashes e atestação estão em `results/dvb_startup_holdout_final/`.
 
 ## Objetivos
 

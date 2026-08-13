@@ -1,0 +1,195 @@
+{
+  "artifacts": {
+    "aggregate": {
+      "path": "aggregate.csv",
+      "sha256": "37539db4f41c0ee2923e7f7ccd4b79b16367ff9757cebec6eb004c583cd1f2a7"
+    },
+    "paired_differences": {
+      "path": "paired_differences.csv",
+      "sha256": "03f1371de530a70b4508db5671a68db0850b9175d7d372cf30d34f0f69c91780"
+    },
+    "raw_runs": {
+      "path": "raw_runs.csv",
+      "sha256": "4e8584b0c36dcae02a14c6f09e17442106a76fa80a535ba09daf3b3de2498dee"
+    },
+    "training_summary": {
+      "path": "training_summary.csv",
+      "sha256": "9c3d643efb4a49a10e66067c78f31428f861617de8a3852221d2b5ee6dbf10aa"
+    }
+  },
+  "base_protocol": {
+    "experiment_config": {
+      "bitrates_kbps": [
+        10026,
+        58015
+      ],
+      "high_buffer_s": 10.0,
+      "low_buffer_s": 4.0,
+      "max_buffer_s": 20.0,
+      "seed": 11,
+      "segment_duration_s": 0.65,
+      "startup_buffer_s": 4.0
+    },
+    "path": "dvb_uhd1_hfr_startup_guard_selected_protocol_config.json",
+    "reward_config": {
+      "low_buffer_weight": 2.0,
+      "quality_weight": 1.0,
+      "rebuffering_weight": 10.0,
+      "startup_weight": 0.5,
+      "switch_weight": 0.25,
+      "target_buffer_s": 8.0
+    },
+    "seeds": [
+      11,
+      23,
+      37,
+      53,
+      71
+    ],
+    "sha256": "42cef383048ba00a644b0888b0d0681011d3cf1f5e1c079b06c704b28f16c657",
+    "training_config": {
+      "buffer_boundaries_s": [
+        2.0,
+        4.0,
+        6.0,
+        8.0,
+        12.0,
+        16.0
+      ],
+      "discount_factor": 0.95,
+      "episodes": 4000,
+      "epsilon_decay": 0.995,
+      "epsilon_min": 0.05,
+      "epsilon_start": 1.0,
+      "learning_rate": 0.1,
+      "seed": 11,
+      "startup_guard": true
+    }
+  },
+  "baselines": {
+    "bola_basic": {
+      "buffer_target_s": 20.0,
+      "minimum_buffer_s": 10.0
+    },
+    "robust_mpc": {
+      "error_window": 5,
+      "history_window": 5,
+      "horizon": 5
+    },
+    "static": {
+      "high_buffer_s": 10.0,
+      "low_buffer_s": 4.0
+    },
+    "throughput": {
+      "history_window": 5,
+      "safety_factor": 0.85
+    }
+  },
+  "better_when": {
+    "average_bitrate_kbps": "higher",
+    "average_payload_bitrate_kbps": "higher",
+    "buffer_mean_s": "descriptive",
+    "buffer_std_s": "lower",
+    "high_representation_fraction_percent": "descriptive",
+    "mean_objective_reward": "higher",
+    "rebuffering_rate_percent": "lower",
+    "rebuffering_s": "lower",
+    "startup_delay_s": "lower",
+    "switch_count": "lower"
+  },
+  "comparison_config": {
+    "path": "dvb_startup_holdout_comparison_config.json",
+    "sha256": "b29aaaec1ab8194f86e2e08c5e1ebf2e2ab531c3c3130d2b48359d1cc4815d39"
+  },
+  "comparison_version": 2,
+  "confidence_level": 0.95,
+  "confidence_method": "two-sided Student t interval for the mean",
+  "controllers": [
+    "static",
+    "throughput",
+    "bola-basic",
+    "robust-mpc",
+    "q-learning"
+  ],
+  "decision_information_policy": "only completed-segment throughput, current buffer, and public segment metadata; no current-segment bandwidth",
+  "delta_definitions": [
+    "q-learning_minus_static",
+    "q-learning_minus_throughput",
+    "q-learning_minus_bola-basic",
+    "q-learning_minus_robust-mpc"
+  ],
+  "evaluation_traces": [
+    {
+      "bandwidth_scale": 10.0,
+      "path": "stage54b_evaluation_low_start.csv",
+      "sha256": "36ae39bb673b31e26cd57858283a7e87d00fd3188dbeeb12a936613eaeeceee5"
+    },
+    {
+      "bandwidth_scale": 10.0,
+      "path": "stage54b_evaluation_mixed_start.csv",
+      "sha256": "9ad25f9f8b791c01f088451391e9d4b8ef11e6ca351190560592b7b314165322"
+    },
+    {
+      "bandwidth_scale": 10.0,
+      "path": "stage54b_evaluation_high_start.csv",
+      "sha256": "4862b37c802420223797dce99ac3c11193ad1137d02d619450cb0f31ef9165b9"
+    }
+  ],
+  "execution_marker": {
+    "path": ".execution_started.json",
+    "sha256": "44063bf10cc076f8c4f8195e4b1636bda977ae990b5d9ca3f513da9d2b3a9dc2"
+  },
+  "execution_policy": "single_final_execution_after_versioned_freeze",
+  "metrics": [
+    "startup_delay_s",
+    "rebuffering_s",
+    "rebuffering_rate_percent",
+    "average_bitrate_kbps",
+    "average_payload_bitrate_kbps",
+    "buffer_mean_s",
+    "buffer_std_s",
+    "mean_objective_reward",
+    "switch_count",
+    "high_representation_fraction_percent"
+  ],
+  "model_artifacts": "not persisted; deterministic q_table hashes are in training_summary.csv",
+  "overall_method": "average evaluation traces within each seed, then compute CI across seeds",
+  "parameter_policy": "frozen_before_first_execution_no_evaluation_tuning",
+  "previous_holdout_status": "not_executed",
+  "references": {
+    "bola": "https://arxiv.org/abs/1601.06748",
+    "dashjs_bola_reference": "https://github.com/Dash-Industry-Forum/dash.js/blob/development/src/streaming/rules/abr/BolaRule.js",
+    "pensieve_robust_mpc_reference": "https://github.com/hongzimao/pensieve/blob/master/test/mpc.py",
+    "robust_mpc": "https://doi.org/10.1145/2785956.2787486",
+    "stage_5_4a_baseline_snapshot": "dvb_abr_comparison_config.json",
+    "stage_5_4b_selection_manifest": "results/dvb_startup_guard_tuning/manifest.json",
+    "trace_provenance": "bandwidth_traces/stage54b_trace_provenance.json"
+  },
+  "reward_scope": "the frozen project objective includes quality, startup delay, post-startup rebuffering, switching, and low buffer",
+  "segment_manifest": {
+    "bitrates_kbps": [
+      10026,
+      58015
+    ],
+    "manifest_sha256": "c529b3942939da3a71d94832fa71b572f5b31a843dd3481b739de57145b33fa7",
+    "path": "dvb_vvc_uhd1_hfr.csv",
+    "segment_count": 63,
+    "sequence": "DVB_VVC_UHD1_HFR",
+    "size_unit": "bytes",
+    "source": "dvb_vvc_uhd1_hfr.csv"
+  },
+  "stage": "5.4c",
+  "study_status": "confirmatory_holdout_after_stage_5_4b_validation_selection",
+  "training_traces": [
+    {
+      "bandwidth_scale": 10.0,
+      "path": "stable.csv",
+      "sha256": "45219bc737bd9cf4f7cfd837cf706b19d3c37f97c168705eeb2e16f169737bbf"
+    },
+    {
+      "bandwidth_scale": 10.0,
+      "path": "fluctuating.csv",
+      "sha256": "1e7bdcef6438c8a1025b9e79ab28daa8330e5e595dc7e2310b0a9896afeb1566"
+    }
+  ]
+}

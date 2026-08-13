@@ -63,6 +63,56 @@ class RewardTuningTest(unittest.TestCase):
         self.assertEqual(mode, "eligible_max_payload")
         self.assertTrue(rows[0]["selected"])
 
+    def test_selection_enforces_startup_noninferiority_when_configured(self):
+        candidates = (
+            RewardCandidate("fast", RewardConfig(startup_weight=0.5)),
+            RewardCandidate("slow", RewardConfig(startup_weight=0.1)),
+        )
+        paired = []
+        for candidate, startup_high, payload in (
+            ("fast", 0.0, 100.0),
+            ("slow", 1.0, 500.0),
+        ):
+            paired.extend(
+                [
+                    {
+                        "candidate_id": candidate,
+                        "scope": "overall_per_seed",
+                        "metric": "rebuffering_rate_percent",
+                        "mean": 0.0,
+                        "ci95_low": 0.0,
+                        "ci95_high": 0.0,
+                    },
+                    {
+                        "candidate_id": candidate,
+                        "scope": "overall_per_seed",
+                        "metric": "startup_delay_s",
+                        "mean": startup_high,
+                        "ci95_low": startup_high,
+                        "ci95_high": startup_high,
+                    },
+                    {
+                        "candidate_id": candidate,
+                        "scope": "overall_per_seed",
+                        "metric": "average_payload_bitrate_kbps",
+                        "mean": payload,
+                        "ci95_low": payload,
+                        "ci95_high": payload,
+                    },
+                ]
+            )
+
+        rows, selected, mode = _select_candidate(
+            candidates,
+            paired,
+            0.0,
+            startup_noninferiority_margin_s=0.0,
+        )
+
+        self.assertEqual(selected, "fast")
+        self.assertEqual(mode, "eligible_max_payload")
+        self.assertFalse(next(row for row in rows if row["candidate_id"] == "slow")["startup_eligible"])
+
     def test_execution_never_opens_evaluation_trace_and_persists_selection(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -158,6 +208,8 @@ class RewardTuningTest(unittest.TestCase):
                         RewardConfig(rebuffering_weight=20, target_buffer_s=4),
                     ),
                 ),
+                startup_noninferiority_margin_s=0.0,
+                stage="5.4b-test",
             )
             opened: list[Path] = []
 
@@ -192,6 +244,10 @@ class RewardTuningTest(unittest.TestCase):
             self.assertEqual(
                 selected_protocol["selection_provenance"]["evaluation_status"],
                 "frozen_not_executed_during_selection",
+            )
+            self.assertEqual(
+                selected_protocol["selection_provenance"]["stage"],
+                "5.4b-test",
             )
 
 

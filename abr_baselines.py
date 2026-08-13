@@ -238,6 +238,7 @@ class RobustMpcController:
         simulated_started = bool(playback_started)
 
         for offset, bitrate in enumerate(sequence):
+            started_before_download = simulated_started
             duration, size_kbits = self._segment_data(
                 segment_index + offset,
                 bitrate,
@@ -271,7 +272,9 @@ class RobustMpcController:
                 bandwidth_kbps=predicted_throughput_kbps,
                 segment_size_kbits=size_kbits,
                 download_time_s=download_time,
-                startup_delay_s=0.0,
+                startup_delay_s=(
+                    0.0 if started_before_download else download_time
+                ),
                 wait_time_s=0.0,
                 buffer_before_s=0.0,
                 buffer_after_s=simulated_buffer,

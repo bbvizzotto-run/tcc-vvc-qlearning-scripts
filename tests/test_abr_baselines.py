@@ -70,6 +70,23 @@ class AbrBaselinesTest(unittest.TestCase):
         # média harmônica(4000, 1000)=1600; pior erro=3; previsão=400.
         self.assertAlmostEqual(controller.predicted_throughput_kbps, 400)
 
+    def test_robust_mpc_forecast_accounts_for_startup_penalty(self):
+        controller = RobustMpcController(
+            [500, 2000],
+            StreamingConfig(
+                segment_duration_s=2,
+                startup_buffer_s=2,
+                max_buffer_s=10,
+            ),
+            RewardConfig(startup_weight=1, target_buffer_s=4),
+            config=RobustMpcConfig(horizon=1),
+        )
+
+        low = controller._sequence_reward((500,), 0, 0, False, 1000)
+        high = controller._sequence_reward((2000,), 0, 0, False, 1000)
+
+        self.assertGreater(low, high)
+
     def test_frozen_configs_reject_invalid_parameters(self):
         with self.assertRaises(ValueError):
             ThroughputConfig(history_window=0)

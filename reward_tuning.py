@@ -32,9 +32,10 @@ PRIMARY_METRIC = "rebuffering_rate_percent"
 SECONDARY_METRIC = "average_payload_bitrate_kbps"
 SELECTION_METHOD = (
     "require the upper bound of the paired 95% CI for Q-Learning minus static "
-    "rebuffering rate to be at most the non-inferiority margin; among eligible "
-    "candidates maximize mean paired payload bitrate; if none is eligible, "
-    "minimize that rebuffering upper bound"
+    "rebuffering rate and, when configured, startup delay to be at most their "
+    "non-inferiority margins; among eligible candidates maximize mean paired "
+    "payload bitrate; if none is eligible, minimize failed constraints, then "
+    "startup and rebuffering upper bounds"
 )
 
 
@@ -53,6 +54,8 @@ class RewardTuningDefinition:
     validation_trace_scales: tuple[float, ...]
     candidates: tuple[RewardCandidate, ...]
     noninferiority_margin_percent: float = 0.0
+    startup_noninferiority_margin_s: float | None = None
+    stage: str = "5.3a"
 
 
 @dataclass
@@ -117,6 +120,12 @@ def load_reward_tuning_definition(path: str | Path) -> RewardTuningDefinition:
         noninferiority_margin_percent=float(
             raw.get("noninferiority_margin_percent", 0.0)
         ),
+        startup_noninferiority_margin_s=(
+            float(raw["startup_noninferiority_margin_s"])
+            if raw.get("startup_noninferiority_margin_s") is not None
+            else None
+        ),
+        stage=str(raw.get("stage", "5.3a")),
     )
     _validate_definition(definition)
     return definition
@@ -141,6 +150,13 @@ def _validate_definition(definition: RewardTuningDefinition) -> None:
         raise ValueError("os identificadores dos candidatos devem ser únicos")
     if not math.isfinite(definition.noninferiority_margin_percent):
         raise ValueError("a margem de não inferioridade deve ser finita")
+    if (
+        definition.startup_noninferiority_margin_s is not None
+        and not math.isfinite(definition.startup_noninferiority_margin_s)
+    ):
+        raise ValueError("a margem de startup deve ser finita")
+    if not definition.stage.strip():
+        raise ValueError("stage não pode ser vazio")
 
     training = set(protocol.training_trace_paths)
     validation = set(definition.validation_trace_paths)
@@ -252,6 +268,7 @@ def _select_candidate(
     candidates: Sequence[RewardCandidate],
     paired_differences: Sequence[dict[str, object]],
     noninferiority_margin_percent: float,
+    startup_noninferiority_margin_s: float | None = None,
 ) -> tuple[list[dict[str, object]], str, str]:
     overall = {
         (str(row["candidate_id"]), str(row["metric"])): row
@@ -262,9 +279,19 @@ def _select_candidate(
     for candidate in candidates:
         rebuffer = overall[(candidate.candidate_id, PRIMARY_METRIC)]
         payload = overall[(candidate.candidate_id, SECONDARY_METRIC)]
-        eligible = (
+        startup = overall.get((candidate.candidate_id, "startup_delay_s"))
+        rebuffer_eligible = (
             float(rebuffer["ci95_high"]) <= noninferiority_margin_percent
         )
+        startup_eligible = (
+            startup_noninferiority_margin_s is None
+            or (
+                startup is not None
+                and float(startup["ci95_high"])
+                <= startup_noninferiority_margin_s
+            )
+        )
+        eligible = rebuffer_eligible and startup_eligible
         selection_rows.append(
             {
                 "candidate_id": candidate.candidate_id,
@@ -275,7 +302,23 @@ def _select_candidate(
                 "payload_bitrate_delta_mean_kbps": payload["mean"],
                 "payload_bitrate_delta_ci95_low_kbps": payload["ci95_low"],
                 "payload_bitrate_delta_ci95_high_kbps": payload["ci95_high"],
+                "startup_delay_delta_mean_s": (
+                    startup["mean"] if startup is not None else ""
+                ),
+                "startup_delay_delta_ci95_low_s": (
+                    startup["ci95_low"] if startup is not None else ""
+                ),
+                "startup_delay_delta_ci95_high_s": (
+                    startup["ci95_high"] if startup is not None else ""
+                ),
                 "noninferiority_margin_percent": noninferiority_margin_percent,
+                "startup_noninferiority_margin_s": (
+                    startup_noninferiority_margin_s
+                    if startup_noninferiority_margin_s is not None
+                    else ""
+                ),
+                "rebuffer_eligible": rebuffer_eligible,
+                "startup_eligible": startup_eligible,
                 "eligible": eligible,
                 "selected": False,
                 "rank": 0,
@@ -295,10 +338,17 @@ def _select_candidate(
             ),
         )
     else:
-        selection_mode = "fallback_min_rebuffering_ci95_high"
+        selection_mode = "fallback_min_constraint_violations"
         ordered = sorted(
             selection_rows,
             key=lambda row: (
+                int(not bool(row["startup_eligible"]))
+                + int(not bool(row["rebuffer_eligible"])),
+                (
+                    float(row["startup_delay_delta_ci95_high_s"])
+                    if row["startup_delay_delta_ci95_high_s"] != ""
+                    else -math.inf
+                ),
                 float(row["rebuffering_rate_delta_ci95_high"]),
                 float(row["rebuffering_rate_delta_mean"]),
                 -float(row["payload_bitrate_delta_mean_kbps"]),
@@ -428,6 +478,7 @@ def execute_reward_tuning(
         definition.candidates,
         paired,
         definition.noninferiority_margin_percent,
+        definition.startup_noninferiority_margin_s,
     )
     return RewardTuningResult(
         raw_runs=raw_runs,
@@ -491,6 +542,9 @@ def save_reward_tuning_result(
         "selection_method": SELECTION_METHOD,
         "selection_mode": result.selection_mode,
         "noninferiority_margin_percent": definition.noninferiority_margin_percent,
+        "startup_noninferiority_margin_s": (
+            definition.startup_noninferiority_margin_s
+        ),
         "selected_candidate_id": result.selected_candidate_id,
         "selected_reward_config": asdict(selected.reward_config),
         "candidates": [
@@ -541,7 +595,7 @@ def save_reward_tuning_result(
     ) + 1
     selected_protocol["reward_config"] = asdict(selected.reward_config)
     selected_protocol["selection_provenance"] = {
-        "stage": "5.3a",
+        "stage": definition.stage,
         "tuning_config": definition.source_path.name,
         "tuning_manifest": str(paths["manifest"]),
         "selected_candidate_id": result.selected_candidate_id,

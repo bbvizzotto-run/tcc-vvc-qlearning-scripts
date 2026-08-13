@@ -45,6 +45,37 @@ class QLearningPipelineTest(unittest.TestCase):
         stalled_reward = calculate_reward(stalled, 1000, 500, 2000, 2, config)
         self.assertGreater(clean_reward.reward, stalled_reward.reward)
 
+    def test_reward_penalizes_startup_when_weight_is_enabled(self):
+        base = dict(
+            segment=0,
+            bitrate_kbps=1000,
+            bandwidth_kbps=1000,
+            segment_size_kbits=2000,
+            download_time_s=2,
+            wait_time_s=0,
+            buffer_before_s=0,
+            buffer_after_s=2,
+            rebuffering_s=0,
+            playback_started=False,
+        )
+        immediate = SegmentResult(**base, startup_delay_s=0)
+        delayed = SegmentResult(**base, startup_delay_s=2)
+        config = RewardConfig(startup_weight=0.5)
+
+        immediate_reward = calculate_reward(
+            immediate, 1000, 500, 2000, 2, config
+        )
+        delayed_reward = calculate_reward(
+            delayed, 1000, 500, 2000, 2, config
+        )
+
+        self.assertEqual(immediate_reward.startup_penalty, 0)
+        self.assertEqual(delayed_reward.startup_penalty, 0.5)
+        self.assertAlmostEqual(
+            immediate_reward.reward - delayed_reward.reward,
+            0.5,
+        )
+
     def test_training_is_reproducible_and_evaluable(self):
         experiment = ExperimentConfig(
             bitrates_kbps=(500, 1000, 2000),

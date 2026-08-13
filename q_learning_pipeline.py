@@ -25,6 +25,7 @@ class RewardConfig:
     rebuffering_weight: float = 10.0
     switch_weight: float = 0.25
     low_buffer_weight: float = 1.0
+    startup_weight: float = 0.0
     target_buffer_s: float = 8.0
 
     def __post_init__(self) -> None:
@@ -33,6 +34,7 @@ class RewardConfig:
             self.rebuffering_weight,
             self.switch_weight,
             self.low_buffer_weight,
+            self.startup_weight,
         )
         if any(weight < 0 for weight in weights):
             raise ValueError("os pesos da recompensa não podem ser negativos")
@@ -76,6 +78,7 @@ class RewardBreakdown:
     reward: float
     quality_utility: float
     quality_term: float
+    startup_penalty: float
     rebuffering_penalty: float
     switch_penalty: float
     low_buffer_penalty: float
@@ -219,6 +222,9 @@ def calculate_reward(
         ) / math.log(max_bitrate_kbps / min_bitrate_kbps)
 
     quality_term = config.quality_weight * quality_utility
+    startup_penalty = config.startup_weight * (
+        result.startup_delay_s / segment_duration_s
+    )
     rebuffering_penalty = config.rebuffering_weight * (
         result.rebuffering_s / segment_duration_s
     )
@@ -232,6 +238,7 @@ def calculate_reward(
     low_buffer_penalty = config.low_buffer_weight * low_buffer_ratio
     reward = (
         quality_term
+        - startup_penalty
         - rebuffering_penalty
         - switch_penalty
         - low_buffer_penalty
@@ -240,6 +247,7 @@ def calculate_reward(
         reward=reward,
         quality_utility=quality_utility,
         quality_term=quality_term,
+        startup_penalty=startup_penalty,
         rebuffering_penalty=rebuffering_penalty,
         switch_penalty=switch_penalty,
         low_buffer_penalty=low_buffer_penalty,

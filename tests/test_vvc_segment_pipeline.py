@@ -7,6 +7,7 @@ from pathlib import Path
 
 from segment_manifest import load_segment_manifest
 from vvc_segment_pipeline import (
+    EncoderConfig,
     build_dry_run_plan,
     build_encoder_command,
     build_jobs,
@@ -110,6 +111,15 @@ class VvcSegmentPipelineTest(unittest.TestCase):
         self.assertEqual(command[command.index("--frameskip") + 1], "0")
         self.assertEqual(command[command.index("--mtprofile") + 1], "0")
         self.assertIn("idr_no_radl", command)
+        self.assertTrue(config.encoder.poc0idr)
+        self.assertEqual(
+            command[command.index("--additional") + 1],
+            "POC0IDR=1",
+        )
+
+    def test_rejects_idr_no_radl_without_poc0idr(self):
+        with self.assertRaisesRegex(ValueError, "poc0idr deve ser true"):
+            EncoderConfig(refresh_type="idr_no_radl", poc0idr=False)
 
     def test_dry_run_does_not_require_source_or_tools(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -166,7 +166,7 @@ O resultado inclui:
 - manifesto CSV aceito diretamente por `--segment-manifest`;
 - arquivo `*.provenance.json` com hashes, versões e comandos executados.
 
-O pipeline exige VVenC 1.13 ou superior porque usa `idr_no_radl`, modo apropriado para segmentos independentemente decodificáveis. A versão recomendada para congelar o experimento é a 1.14.0. O bitrate fornecido ao `vvencapp` é convertido de kbps para bits por segundo e o controle de taxa usa duas passagens por padrão. A configuração fixa oito threads e `mt_profile=0`; qualquer alteração fica registrada na proveniência.
+O pipeline exige VVenC 1.13 ou superior porque usa `idr_no_radl`, modo apropriado para segmentos independentemente decodificáveis. A versão recomendada para congelar o experimento é a 1.14.0. Para esse modo, `poc0idr=true` é obrigatório e o pipeline emite `--additional POC0IDR=1`, garantindo que o primeiro quadro de cada bitstream independente seja um IDR. O bitrate fornecido ao `vvencapp` é convertido de kbps para bits por segundo e o controle de taxa usa duas passagens por padrão. A configuração fixa oito threads e `mt_profile=0`; qualquer alteração fica registrada na proveniência.
 
 O pipeline verifica o tamanho da fonte YUV antes de codificar e **não repete conteúdo automaticamente**. Os traces de avaliação possuem 30 segmentos de 2 s; portanto, o protocolo completo requer 60 s de conteúdo após `start_frame`. O exemplo BQTerrace contém cinco segmentos apenas como ensaio de integração, devendo ser ajustado à fonte efetivamente disponível. Se uma execução longa for interrompida, `--resume` reutiliza apenas bitstreams cujo comando salvo no log coincide exatamente com a configuração atual. Consulte `segment_manifests/README.md` para o procedimento completo.
 

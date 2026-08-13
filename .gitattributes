@@ -1,0 +1,3 @@
+# Preserve the exact Windows-generated evidence bytes and avoid a 11k-line diff.
+segment_manifests/stage55/raw/big_buck_bunny_full.csv -diff -text
+segment_manifests/stage55/raw/big_buck_bunny_full.provenance.json -diff -text

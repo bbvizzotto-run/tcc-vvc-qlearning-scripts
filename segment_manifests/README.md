@@ -89,6 +89,20 @@ Arquivos existentes não são substituídos por padrão. `--resume` reaproveita 
 
 Quando `refresh_type` é `idr_no_radl`, a configuração `poc0idr` deve permanecer `true`. O pipeline traduz essa combinação para `--additional POC0IDR=1`, exigência do VVenC 1.14.0 para iniciar cada bitstream segmentado com um IDR independentemente decodificável. A combinação `idr_no_radl` com `poc0idr=false` é rejeitada antes da execução.
 
+## Canonicalização da escada medida — Etapa 5.5
+
+O alvo solicitado ao encoder pode divergir da taxa efetivamente produzida,
+sobretudo em segmentos independentes curtos. `canonicalize_vvc_manifest.py`
+preserva o alvo original em `encoder_target_kbps` e calcula um rótulo
+operacional inteiro em `bitrate_kbps` a partir da taxa média dos payloads de
+cada representação. O manifesto resultante continua compatível com o ambiente
+e expõe ainda `representation_id` (`L0`, `L1`, ...).
+
+O processo é determinístico e produz proveniência própria com os hashes das
+duas entradas, mapeamento entre alvo e taxa medida, estatísticas de qualidade e
+resultado das validações. Consulte `stage55/README.md` para a execução congelada
+do Big Buck Bunny.
+
 ## Importação DVB-DASH — Etapa 5.2b
 
 `import_dvb_dash.py` converte um pacote DASH estático já extraído para este mesmo contrato. São aceitos `SegmentTemplate` com duração fixa ou `SegmentTimeline`, `SegmentList` e `SegmentBase` com índice `sidx`. O importador seleciona somente adaptações de vídeo, resolve os caminhos locais, mede o segmento de mídia completo e valida se todas as representações possuem a mesma linha temporal.

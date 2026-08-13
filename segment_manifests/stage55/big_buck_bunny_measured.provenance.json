@@ -1,0 +1,116 @@
+{
+  "algorithm": {
+    "formula": "sum(size_bytes) * 8 / sum(duration_s) / 1000",
+    "name": "aggregate_payload_bitrate_round_half_up",
+    "purpose": "separate the VVenC encoder target from the operational representation bitrate used by ABR controllers",
+    "rounding": "nearest integer kbps, ROUND_HALF_UP"
+  },
+  "canonicalization_schema_version": 1,
+  "input": {
+    "manifest_file": "big_buck_bunny_full.csv",
+    "manifest_sha256": "fb5f67387b4902d70f2ae314360c26b07d7b4ec0297e5df802c610ff64c1b713",
+    "provenance_file": "big_buck_bunny_full.provenance.json",
+    "provenance_sha256": "84494f7bcc736c8415c52df6f8510bec7e47e0319f67864312976d6e294e5552"
+  },
+  "output": {
+    "manifest_file": "big_buck_bunny_measured.csv",
+    "manifest_sha256": "f89cebc38eaaaa3f2b16b50664c79b8dd366147680cc4238d97b217143bb633a",
+    "operational_bitrates_kbps": [
+      1019,
+      1692,
+      2610,
+      3632
+    ],
+    "row_count": 240,
+    "segment_count": 60
+  },
+  "representations": [
+    {
+      "encoder_target_kbps": 1000,
+      "max_segment_bitrate_kbps": "1260.024",
+      "mean_psnr_y_db": "42.874798",
+      "measured_bitrate_kbps": "1019.437733",
+      "min_segment_bitrate_kbps": "873.528",
+      "operational_bitrate_kbps": 1019,
+      "representation_id": "L0",
+      "total_duration_s": "60",
+      "total_size_bytes": 7645783
+    },
+    {
+      "encoder_target_kbps": 2000,
+      "max_segment_bitrate_kbps": "2199.36",
+      "mean_psnr_y_db": "45.345438",
+      "measured_bitrate_kbps": "1691.5588",
+      "min_segment_bitrate_kbps": "1207.768",
+      "operational_bitrate_kbps": 1692,
+      "representation_id": "L1",
+      "total_duration_s": "60",
+      "total_size_bytes": 12686691
+    },
+    {
+      "encoder_target_kbps": 4000,
+      "max_segment_bitrate_kbps": "3735.68",
+      "mean_psnr_y_db": "47.128067",
+      "measured_bitrate_kbps": "2609.748267",
+      "min_segment_bitrate_kbps": "1695.392",
+      "operational_bitrate_kbps": 2610,
+      "representation_id": "L2",
+      "total_duration_s": "60",
+      "total_size_bytes": 19573112
+    },
+    {
+      "encoder_target_kbps": 8000,
+      "max_segment_bitrate_kbps": "5229.728",
+      "mean_psnr_y_db": "48.384195",
+      "measured_bitrate_kbps": "3631.538533",
+      "min_segment_bitrate_kbps": "2465.896",
+      "operational_bitrate_kbps": 3632,
+      "representation_id": "L3",
+      "total_duration_s": "60",
+      "total_size_bytes": 27236539
+    }
+  ],
+  "source_execution_audit": {
+    "commands_validated": 240,
+    "configuration_sha256": "2c8c6272d39e21dc11735edf76c0446cbc550fc1a3f6dc0e01d6689b00435093",
+    "generated_at_utc": "2026-08-13T22:22:26.932994+00:00",
+    "pipeline": {
+      "git_commit": "d35d8ab9f545e54ee86c1d3db46140e27d3229fa",
+      "git_dirty": true,
+      "module": "D:\\tcc-vvc-qlearning-scripts\\vvc_segment_pipeline.py",
+      "module_sha256": "2cee8323dc2d3e7c445b99dd1c9ac52252d37ed4c9a9ba82b6c830cd18a32319"
+    },
+    "pipeline_schema_version": 1,
+    "poc0idr_validated": true,
+    "runtime": {
+      "platform": "Windows-10-10.0.26200-SP0",
+      "python": "3.9.13"
+    },
+    "source": {
+      "available_frames": 1440,
+      "path": "D:\\vvc-stage55\\sources\\normalized\\big_buck_bunny_1080p24_60s.yuv",
+      "required_frames": 1440,
+      "sha256": "4c6fd0d193ca6316b0e4f56bc73c01b8dd2de4ad9b1fe4d24c4d0406ff5aff2e",
+      "size_bytes": 4478976000
+    },
+    "source_manifest_sha256_validated": "fb5f67387b4902d70f2ae314360c26b07d7b4ec0297e5df802c610ff64c1b713",
+    "tools": {
+      "decoder": {
+        "path": "D:\\vvc-tools\\install\\vvdec\\bin\\vvdecapp.exe",
+        "version": "vvdecapp.exe version 3.2.0"
+      },
+      "encoder": {
+        "path": "D:\\vvc-tools\\install\\vvenc\\bin\\vvencapp.exe",
+        "version": "vvencapp version 1.14.0"
+      }
+    }
+  },
+  "validation": {
+    "complete_ladder": true,
+    "complete_psnr_y": true,
+    "complete_sha256": true,
+    "source_sequence": "big_buck_bunny",
+    "strictly_increasing_psnr_y_per_segment": true,
+    "strictly_increasing_size_per_segment": true
+  }
+}

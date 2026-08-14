@@ -10,15 +10,27 @@ from segment_manifest import load_segment_manifest
 
 
 class MeasuredLadderTest(unittest.TestCase):
-    def _raw_manifest(self, root: Path, *, invert_psnr: bool = False) -> Path:
+    def _raw_manifest(
+        self,
+        root: Path,
+        *,
+        invert_psnr: bool = False,
+        lossless_second_segment: bool = False,
+    ) -> Path:
         path = root / "raw.csv"
-        high_second_psnr = "30" if invert_psnr else "34"
+        low_second_psnr = "100" if lossless_second_segment else "31"
+        high_second_psnr = (
+            "100"
+            if lossless_second_segment
+            else ("30" if invert_psnr else "34")
+        )
         path.write_text(
             "sequence,segment,bitrate_kbps,duration_s,size_bytes,"
             "psnr_y_db,source_file,sha256\n"
             f"video,0,1000,1,100000,30,low0.266,{'a' * 64}\n"
             f"video,0,2000,1,250000,33,high0.266,{'b' * 64}\n"
-            f"video,1,1000,1,125000,31,low1.266,{'c' * 64}\n"
+            f"video,1,1000,1,125000,{low_second_psnr},low1.266,"
+            f"{'c' * 64}\n"
             f"video,1,2000,1,300000,{high_second_psnr},high1.266,"
             f"{'d' * 64}\n",
             encoding="utf-8",
@@ -56,7 +68,11 @@ class MeasuredLadderTest(unittest.TestCase):
                         "encoder": {"refresh_type": "idr_no_radl"},
                     },
                     "pipeline": {"git_commit": "abc", "git_dirty": False},
-                    "source": {"sha256": "f" * 64},
+                    "source": {
+                        "sha256": "f" * 64,
+                        "size_bytes": 12,
+                        "available_frames": 2,
+                    },
                     "tools": {"encoder": {"version": "VVenC 1.14.0"}},
                     "runtime": {"platform": "test"},
                     "commands": commands,
@@ -70,6 +86,51 @@ class MeasuredLadderTest(unittest.TestCase):
                         "bitrates_kbps": [1000, 2000],
                         "size_unit": "bytes",
                     },
+                }
+            ),
+            encoding="utf-8",
+        )
+        return path
+
+    def _source_preparation_provenance(
+        self,
+        root: Path,
+        *,
+        clip_sha256: str | None = None,
+    ) -> Path:
+        path = root / "source-preparation.provenance.json"
+        archive_sha256 = "1" * 64
+        path.write_text(
+            json.dumps(
+                {
+                    "source_preparation_schema_version": 1,
+                    "generated_at_utc": "2026-01-01T00:00:00+00:00",
+                    "configuration_sha256": "2" * 64,
+                    "configuration": {
+                        "source": {
+                            "url": "https://example.test/source.y4m.xz",
+                            "expected_sha256": archive_sha256,
+                        },
+                        "clip": {
+                            "start_frame": 0,
+                            "frame_count": 2,
+                            "pixel_format": "yuv420p",
+                        },
+                    },
+                    "source_archive": {
+                        "url": "https://example.test/source.y4m.xz",
+                        "sha256": archive_sha256,
+                    },
+                    "clip": {
+                        "start_frame": 0,
+                        "frame_count": 2,
+                        "pixel_format": "yuv420p",
+                        "size_bytes": 12,
+                        "sha256": clip_sha256 or "f" * 64,
+                    },
+                    "ffmpeg": {"version": "ffmpeg test"},
+                    "pipeline": {"git_commit": "abc", "git_dirty": False},
+                    "runtime": {"platform": "test"},
                 }
             ),
             encoding="utf-8",
@@ -115,6 +176,8 @@ class MeasuredLadderTest(unittest.TestCase):
             "900",
         )
         self.assertEqual(result["source_execution_audit"]["commands_validated"], 4)
+        self.assertEqual(result["canonicalization_schema_version"], 2)
+        self.assertEqual(result["validation"]["lossless_psnr_ties"], 0)
 
     def test_refuses_to_replace_existing_output(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -147,6 +210,76 @@ class MeasuredLadderTest(unittest.TestCase):
                 canonicalize_manifest(
                     self._raw_manifest(root, invert_psnr=True),
                     self._source_provenance(root),
+                    root / "canonical.csv",
+                )
+
+    def test_accepts_equal_psnr_only_at_the_lossless_cap(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            result = canonicalize_manifest(
+                self._raw_manifest(root, lossless_second_segment=True),
+                self._source_provenance(root),
+                root / "canonical.csv",
+            )
+
+        self.assertEqual(result["validation"]["lossless_psnr_cap_db"], "100")
+        self.assertEqual(result["validation"]["lossless_psnr_ties"], 1)
+
+    def test_audits_the_source_preparation_chain(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            result = canonicalize_manifest(
+                self._raw_manifest(root),
+                self._source_provenance(root),
+                root / "canonical.csv",
+                source_preparation_provenance=(
+                    self._source_preparation_provenance(root)
+                ),
+            )
+
+        self.assertEqual(
+            result["source_preparation_audit"]["clip"]["sha256"],
+            "f" * 64,
+        )
+
+    def test_rejects_a_different_prepared_source_hash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with self.assertRaisesRegex(ValueError, "hash do YUV preparado"):
+                canonicalize_manifest(
+                    self._raw_manifest(root),
+                    self._source_provenance(root),
+                    root / "canonical.csv",
+                    source_preparation_provenance=(
+                        self._source_preparation_provenance(
+                            root,
+                            clip_sha256="0" * 64,
+                        )
+                    ),
+                )
+
+    def test_rejects_equal_psnr_below_the_lossless_cap(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            raw = self._raw_manifest(root)
+            raw.write_text(
+                raw.read_text(encoding="utf-8").replace(
+                    ",34,high1.266,",
+                    ",31,high1.266,",
+                ),
+                encoding="utf-8",
+            )
+            source_provenance = self._source_provenance(root)
+            provenance = json.loads(source_provenance.read_text(encoding="utf-8"))
+            provenance["manifest"]["manifest_sha256"] = hashlib.sha256(
+                raw.read_bytes()
+            ).hexdigest()
+            source_provenance.write_text(json.dumps(provenance), encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "psnr_y_db"):
+                canonicalize_manifest(
+                    raw,
+                    source_provenance,
                     root / "canonical.csv",
                 )
 

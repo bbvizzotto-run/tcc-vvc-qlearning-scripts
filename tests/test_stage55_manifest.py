@@ -1,9 +1,12 @@
+import json
+import tempfile
 import unittest
 from pathlib import Path
 
 from abr_baselines import BolaConfig, RobustMpcConfig
 from abr_comparison import run_baseline_experiment
 from experiment import ExperimentConfig
+from measured_ladder import canonicalize_manifest
 from q_learning_pipeline import (
     RewardConfig,
     TrainingConfig,
@@ -14,42 +17,92 @@ from segment_manifest import load_segment_manifest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MANIFEST_PATH = (
-    ROOT / "segment_manifests/stage55/big_buck_bunny_measured.csv"
-)
+MANIFEST_PATHS = {
+    "big_buck_bunny": (
+        ROOT / "segment_manifests/stage55/big_buck_bunny_measured.csv"
+    ),
+    "elephants_dream": (
+        ROOT / "segment_manifests/stage55/elephants_dream_measured.csv"
+    ),
+}
 
 
 class Stage55ManifestIntegrationTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.manifest = load_segment_manifest(MANIFEST_PATH)
+        cls.manifests = {
+            name: load_segment_manifest(path)
+            for name, path in MANIFEST_PATHS.items()
+        }
 
-    def test_canonical_manifest_has_the_expected_measured_ladder(self):
-        self.assertEqual(self.manifest.sequence, "big_buck_bunny")
-        self.assertEqual(self.manifest.segment_count, 60)
-        self.assertEqual(
-            self.manifest.bitrates_kbps,
-            (1019, 1692, 2610, 3632),
+    def test_canonical_manifests_have_the_expected_measured_ladders(self):
+        expected = {
+            "big_buck_bunny": (1019, 1692, 2610, 3632),
+            "elephants_dream": (1064, 1847, 3097, 5182),
+        }
+        for name, ladder in expected.items():
+            with self.subTest(sequence=name):
+                manifest = self.manifests[name]
+                self.assertEqual(manifest.sequence, name)
+                self.assertEqual(manifest.segment_count, 60)
+                self.assertEqual(manifest.bitrates_kbps, ladder)
+                self.assertEqual(
+                    [
+                        entry["encoder_target_kbps"]
+                        for entry in manifest.metadata()["representations"]
+                    ],
+                    [1000, 2000, 4000, 8000],
+                )
+
+    def test_elephants_dream_records_the_lossless_edge_case(self):
+        provenance_path = (
+            ROOT
+            / "segment_manifests/stage55/elephants_dream_measured.provenance.json"
+        )
+        provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(provenance["canonicalization_schema_version"], 2)
+        self.assertEqual(provenance["validation"]["lossless_psnr_ties"], 6)
+        self.assertFalse(
+            provenance["source_execution_audit"]["pipeline"]["git_dirty"]
         )
         self.assertEqual(
-            [
-                entry["encoder_target_kbps"]
-                for entry in self.manifest.metadata()["representations"]
-            ],
-            [1000, 2000, 4000, 8000],
+            provenance["source_preparation_audit"]["source_archive"]["sha256"],
+            "aef14c7ff450cd44e75760b6c0bef5ed9dc62f6af4d8c68816128ea74fb782b4",
         )
+        self.assertEqual(
+            provenance["source_preparation_audit"]["clip"]["sha256"],
+            "8bc7a47e03d2fd1d2bd7f271a80563771579e7ce06f42cd2188a3a7a25790a80",
+        )
+
+    def test_elephants_dream_derivation_is_reproducible(self):
+        directory = ROOT / "segment_manifests/stage55"
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "elephants_dream_measured.csv"
+            canonicalize_manifest(
+                directory / "raw/elephants_dream_full.csv",
+                directory / "raw/elephants_dream_full.provenance.json",
+                output,
+                source_preparation_provenance=(
+                    directory
+                    / "raw/elephants_dream_1080p24_60s.provenance.json"
+                ),
+            )
+
+            self.assertEqual(
+                output.read_bytes(),
+                (directory / "elephants_dream_measured.csv").read_bytes(),
+            )
+            self.assertEqual(
+                output.with_suffix(".provenance.json").read_bytes(),
+                (
+                    directory
+                    / "elephants_dream_measured.provenance.json"
+                ).read_bytes(),
+            )
 
     def test_manifest_runs_with_q_learning_bola_and_robust_mpc(self):
         trace = [1200.0, 1800.0, 2700.0, 4200.0, 2300.0, 3600.0]
-        experiment = ExperimentConfig(
-            bitrates_kbps=self.manifest.bitrates_kbps,
-            segment_duration_s=1.0,
-            startup_buffer_s=2.0,
-            max_buffer_s=20.0,
-            low_buffer_s=4.0,
-            high_buffer_s=10.0,
-            seed=42,
-        )
         reward = RewardConfig(startup_weight=0.5, target_buffer_s=8.0)
         training = TrainingConfig(
             episodes=1,
@@ -57,49 +110,60 @@ class Stage55ManifestIntegrationTest(unittest.TestCase):
             seed=42,
             startup_guard=True,
         )
-        agent, encoder, _, _ = train_q_learning(
-            [("stage55-smoke", trace)],
-            experiment,
-            training,
-            reward,
-            segment_manifest=self.manifest,
-        )
-        q_rows, _ = run_q_learning_experiment(
-            trace,
-            experiment,
-            agent,
-            encoder,
-            reward,
-            segment_manifest=self.manifest,
-            startup_guard=True,
-        )
-        bola_rows, _ = run_baseline_experiment(
-            "bola-basic",
-            trace,
-            experiment,
-            reward,
-            self.manifest,
-            bola_config=BolaConfig(),
-        )
-        mpc_rows, _ = run_baseline_experiment(
-            "robust-mpc",
-            trace,
-            experiment,
-            reward,
-            self.manifest,
-            robust_mpc_config=RobustMpcConfig(),
-        )
+        for name, manifest in self.manifests.items():
+            with self.subTest(sequence=name):
+                experiment = ExperimentConfig(
+                    bitrates_kbps=manifest.bitrates_kbps,
+                    segment_duration_s=1.0,
+                    startup_buffer_s=2.0,
+                    max_buffer_s=20.0,
+                    low_buffer_s=4.0,
+                    high_buffer_s=10.0,
+                    seed=42,
+                )
+                agent, encoder, _, _ = train_q_learning(
+                    [("stage55-smoke", trace)],
+                    experiment,
+                    training,
+                    reward,
+                    segment_manifest=manifest,
+                )
+                q_rows, _ = run_q_learning_experiment(
+                    trace,
+                    experiment,
+                    agent,
+                    encoder,
+                    reward,
+                    segment_manifest=manifest,
+                    startup_guard=True,
+                )
+                bola_rows, _ = run_baseline_experiment(
+                    "bola-basic",
+                    trace,
+                    experiment,
+                    reward,
+                    manifest,
+                    bola_config=BolaConfig(),
+                )
+                mpc_rows, _ = run_baseline_experiment(
+                    "robust-mpc",
+                    trace,
+                    experiment,
+                    reward,
+                    manifest,
+                    robust_mpc_config=RobustMpcConfig(),
+                )
 
-        for rows in (q_rows, bola_rows, mpc_rows):
-            self.assertEqual(len(rows), len(trace))
-            self.assertEqual(
-                {row["segment_size_source"] for row in rows},
-                {"manifest"},
-            )
-            self.assertTrue(
-                {int(row["bitrate_kbps"]) for row in rows}
-                <= set(self.manifest.bitrates_kbps)
-            )
+                for rows in (q_rows, bola_rows, mpc_rows):
+                    self.assertEqual(len(rows), len(trace))
+                    self.assertEqual(
+                        {row["segment_size_source"] for row in rows},
+                        {"manifest"},
+                    )
+                    self.assertTrue(
+                        {int(row["bitrate_kbps"]) for row in rows}
+                        <= set(manifest.bitrates_kbps)
+                    )
 
 
 if __name__ == "__main__":

@@ -1,8 +1,9 @@
 # Etapa 5.5 — conteúdo VVC controlado
 
-Este diretório registra o primeiro conteúdo da avaliação multi-conteúdo. Os
-bitstreams `.266` e a fonte YUV permanecem fora do Git; tamanhos, PSNR-Y,
-hashes, comandos e versões das ferramentas são versionados para auditoria.
+Este diretório registra os dois primeiros conteúdos da avaliação
+multi-conteúdo. Os bitstreams `.266` e a fonte YUV permanecem fora do Git;
+tamanhos, PSNR-Y, hashes, comandos e versões das ferramentas são versionados
+para auditoria.
 
 ## Big Buck Bunny
 
@@ -57,8 +58,10 @@ python canonicalize_vvc_manifest.py \
 O algoritmo calcula `sum(size_bytes) × 8 / sum(duration_s) / 1000` para cada
 representação e arredonda para o inteiro mais próximo com `ROUND_HALF_UP`. A
 execução também exige matriz completa, PSNR-Y e SHA-256 preenchidos,
-monotonicidade estrita de tamanho/PSNR por segmento e cobertura de todos os
-240 comandos na proveniência.
+monotonicidade estrita de tamanho e crescimento estrito de PSNR-Y por segmento,
+exceto por empates no teto lossless de 100 dB usado pelo projeto. Empates abaixo
+desse teto e qualquer queda continuam inválidos. A proveniência registra a
+política, o número de empates lossless e a cobertura dos 240 comandos.
 
 ## Observação de auditoria
 
@@ -97,5 +100,42 @@ python prepare_y4m_source.py `
 
 O script rejeita hash, geometria, frequência, entrelaçamento, chroma ou tamanho
 de saída divergentes e registra configuração efetiva, cabeçalho Y4M, FFmpeg,
-runtime, commit Git e hashes em uma proveniência própria. O próximo pipeline
-VVC deve partir do exemplo `vvc_pipeline_config.elephants_dream.example.json`.
+runtime, commit Git e hashes em uma proveniência própria. O trecho normalizado
+produzido possui SHA-256
+`8bc7a47e03d2fd1d2bd7f271a80563771579e7ce06f42cd2188a3a7a25790a80`.
+
+A codificação usa o mesmo protocolo do Big Buck Bunny: VVenC 1.14.0, VVdeC
+3.2.0, preset `medium`, duas passagens, QPA, `idr_no_radl`, `POC0IDR=1`, oito
+threads, quatro alvos e 60 segmentos independentes de 1 s. A proveniência bruta
+registra o merge `6f4829c...` e `git_dirty=false`.
+
+`raw/elephants_dream_1080p24_60s.provenance.json` ancora a transformação do XZ
+oficial no YUV normalizado. `raw/elephants_dream_full.csv` e sua proveniência
+preservam a evidência original da codificação. `elephants_dream_measured.csv`
+separa os alvos dos rótulos operacionais e liga criptograficamente as duas
+etapas:
+
+| Nível | Alvo VVenC (kbps) | Taxa média medida (kbps) | Rótulo operacional (kbps) | PSNR-Y médio (dB) |
+| :--- | ---: | ---: | ---: | ---: |
+| L0 | 1000 | 1063,544800 | 1064 | 42,562710 |
+| L1 | 2000 | 1847,026533 | 1847 | 44,472146 |
+| L2 | 4000 | 3096,570933 | 3097 | 46,183876 |
+| L3 | 8000 | 5182,347067 | 5182 | 47,948724 |
+
+Nos segmentos 30 e 31, todas as representações atingiram `100 dB`, convenção
+do projeto para MSE zero. Isso gera seis empates adjacentes legítimos no PSNR,
+sem empate de tamanho. A canonicalização v2 aceita igualdade somente nesse teto
+lossless e registra `lossless_psnr_ties=6`; os dois segmentos permanecem no
+conjunto para preservar o recorte contínuo previamente congelado.
+
+Para reproduzir a derivação:
+
+```bash
+python canonicalize_vvc_manifest.py \
+  --input segment_manifests/stage55/raw/elephants_dream_full.csv \
+  --source-provenance segment_manifests/stage55/raw/elephants_dream_full.provenance.json \
+  --source-preparation-provenance segment_manifests/stage55/raw/elephants_dream_1080p24_60s.provenance.json \
+  --output segment_manifests/stage55/elephants_dream_measured.csv \
+  --provenance segment_manifests/stage55/elephants_dream_measured.provenance.json \
+  --overwrite
+```

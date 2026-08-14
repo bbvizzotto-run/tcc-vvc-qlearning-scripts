@@ -23,6 +23,13 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="proveniência gerada pelo pipeline VVC",
     )
+    parser.add_argument(
+        "--source-preparation-provenance",
+        help=(
+            "proveniência opcional da preparação da fonte usada pelo "
+            "pipeline VVC"
+        ),
+    )
     parser.add_argument("--output", required=True, help="manifesto canônico")
     parser.add_argument(
         "--provenance",
@@ -43,6 +50,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         source_provenance=Path(args.source_provenance),
         output_manifest=Path(args.output),
         output_provenance=(Path(args.provenance) if args.provenance else None),
+        source_preparation_provenance=(
+            Path(args.source_preparation_provenance)
+            if args.source_preparation_provenance
+            else None
+        ),
         overwrite=args.overwrite,
     )
     print(json.dumps(result["output"], indent=2, ensure_ascii=False))

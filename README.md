@@ -34,6 +34,7 @@ O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 impl
 | Avaliação no novo holdout de 60 segmentos | Executada uma única vez (Etapa 5.4c) |
 | Primeiro conteúdo VVC controlado e escada medida | Implementado (Etapa 5.5b) |
 | Segundo conteúdo VVC controlado e escada medida | Implementado (Etapa 5.5d) |
+| Terceiro conteúdo VVC controlado | Preparação congelada (Etapa 5.5e) |
 | Dataset VVC real e resultados completos | Pendente de execução com as fontes YUV |
 | Rede `tc/netem` | Pendente |
 
@@ -186,6 +187,12 @@ descompressão integral. O Elephants Dream foi codificado com o mesmo protocolo,
 produzindo a escada medida `[1064, 1847, 3097, 5182]` kbps. Manifestos brutos e
 canônicos, proveniências e detalhes do caso lossless estão em
 `segment_manifests/stage55/`.
+
+Para o terceiro conteúdo, a Etapa 5.5e congela a fonte lossless de *Sita Sings
+the Blues*, seu SHA-256 e o mesmo recorte de 120–180 s. A configuração
+`y4m_source_config.sita_sings_the_blues.json` reutiliza o extrator em fluxo e
+`vvc_pipeline_config.sita_sings_the_blues.example.json` preserva a matriz de 60
+segmentos e quatro alvos. Vídeo, YUV e bitstreams permanecem fora do Git.
 
 ### Importação de pacotes DVB-DASH VVC
 

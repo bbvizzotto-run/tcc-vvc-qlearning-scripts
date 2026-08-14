@@ -17,6 +17,9 @@ from vvc_segment_pipeline import (
 )
 
 
+ROOT = Path(__file__).resolve().parents[1]
+
+
 class FakeCodecRunner:
     def __init__(self, source_path: Path, frame_size: int, frames_per_segment: int):
         self.source_path = source_path
@@ -120,6 +123,26 @@ class VvcSegmentPipelineTest(unittest.TestCase):
     def test_rejects_idr_no_radl_without_poc0idr(self):
         with self.assertRaisesRegex(ValueError, "poc0idr deve ser true"):
             EncoderConfig(refresh_type="idr_no_radl", poc0idr=False)
+
+    def test_sita_configuration_reuses_the_frozen_encoding_matrix(self):
+        config = load_pipeline_config(
+            ROOT / "vvc_pipeline_config.sita_sings_the_blues.example.json"
+        )
+
+        self.assertEqual(config.source.name, "sita_sings_the_blues")
+        self.assertEqual(
+            (config.source.width, config.source.height),
+            (1920, 1080),
+        )
+        self.assertEqual(
+            (config.source.fps_num, config.source.fps_den),
+            (24, 1),
+        )
+        self.assertEqual(config.source.segment_count, 60)
+        self.assertEqual(config.source.frames_per_segment, 24)
+        self.assertEqual(config.bitrates_kbps, (1000, 2000, 4000, 8000))
+        self.assertEqual(len(build_jobs(config)), 240)
+        self.assertTrue(config.encoder.poc0idr)
 
     def test_dry_run_does_not_require_source_or_tools(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "source": {
+    "name": "sita_sings_the_blues",
+    "url": "https://media.xiph.org/video/derf/y4m/sita_sings_the_blues_1080p24.y4m.xz",
+    "license_name": "CC0 1.0 Universal (visual content)",
+    "license_url": "https://www.sitasingstheblues.com/license.html",
+    "input_xz": "datasets/xiph/sita_sings_the_blues_1080p24.y4m.xz",
+    "expected_sha256": "e4e8945f967ad2451d6fb663e4ef93008fea75460e6c5c1033e255a526710902"
+  },
+  "clip": {
+    "output_yuv": "artifacts/stage55/sources/sita_sings_the_blues_1080p24_60s.yuv",
+    "provenance_path": "artifacts/stage55/sources/sita_sings_the_blues_1080p24_60s.provenance.json",
+    "width": 1920,
+    "height": 1080,
+    "fps_num": 24,
+    "fps_den": 1,
+    "start_frame": 2880,
+    "frame_count": 1440,
+    "pixel_format": "yuv420p"
+  },
+  "ffmpeg_executable": "ffmpeg"
+}

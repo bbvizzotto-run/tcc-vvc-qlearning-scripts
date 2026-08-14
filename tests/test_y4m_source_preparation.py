@@ -16,6 +16,9 @@ from y4m_source_preparation import (
 )
 
 
+ROOT = Path(__file__).resolve().parents[1]
+
+
 class FakeStdin:
     def __init__(self, interrupt=False):
         self.data = bytearray()
@@ -293,6 +296,27 @@ class Y4MSourcePreparationTest(unittest.TestCase):
         self.assertIn("trim=start_frame=1:end_frame=3,setpts=PTS-STARTPTS", command)
         self.assertEqual(command[command.index("-frames:v") + 1], "2")
         self.assertEqual(command[command.index("-fps_mode") + 1], "passthrough")
+
+    def test_sita_configuration_freezes_the_multi_content_protocol(self):
+        config = load_source_preparation_config(
+            ROOT / "y4m_source_config.sita_sings_the_blues.json"
+        )
+
+        self.assertEqual(config.source.name, "sita_sings_the_blues")
+        self.assertEqual(
+            config.source.expected_sha256,
+            "e4e8945f967ad2451d6fb663e4ef93008fea75460e6c5c1033e255a526710902",
+        )
+        self.assertEqual(
+            config.source.license_name,
+            "CC0 1.0 Universal (visual content)",
+        )
+        self.assertEqual((config.clip.width, config.clip.height), (1920, 1080))
+        self.assertEqual((config.clip.fps_num, config.clip.fps_den), (24, 1))
+        self.assertEqual(config.clip.start_frame, 2880)
+        self.assertEqual(config.clip.frame_count, 1440)
+        self.assertEqual(config.clip.duration_s, 60.0)
+        self.assertEqual(config.clip.expected_output_size_bytes, 4478976000)
 
 
 if __name__ == "__main__":

@@ -1,9 +1,9 @@
 # Etapa 5.5 — conteúdo VVC controlado
 
-Este diretório registra os dois primeiros conteúdos da avaliação
-multi-conteúdo. Os bitstreams `.266` e a fonte YUV permanecem fora do Git;
-tamanhos, PSNR-Y, hashes, comandos e versões das ferramentas são versionados
-para auditoria.
+Este diretório registra os dois primeiros resultados e a preparação do terceiro
+conteúdo da avaliação multi-conteúdo. Os bitstreams `.266` e as fontes de vídeo
+permanecem fora do Git; tamanhos, PSNR-Y, hashes, comandos e versões das
+ferramentas são versionados para auditoria.
 
 ## Big Buck Bunny
 
@@ -139,3 +139,35 @@ python canonicalize_vvc_manifest.py \
   --provenance segment_manifests/stage55/elephants_dream_measured.provenance.json \
   --overwrite
 ```
+
+## Terceiro conteúdo: Sita Sings the Blues
+
+A Etapa 5.5e congela a preparação do terceiro conteúdo sem antecipar resultados
+de codificação:
+
+- fonte: `sita_sings_the_blues_1080p24.y4m.xz`, publicada pelo Xiph;
+- URL: <https://media.xiph.org/video/derf/y4m/sita_sings_the_blues_1080p24.y4m.xz>;
+- licença da obra visual: CC0 1.0 Universal;
+- página específica da licença: <https://www.sitasingstheblues.com/license.html>;
+- ressalva: a página da obra documenta restrições separadas para algumas
+  músicas; este pipeline descarta o áudio e processa somente os quadros;
+- SHA-256 verificado do XZ:
+  `e4e8945f967ad2451d6fb663e4ef93008fea75460e6c5c1033e255a526710902`;
+- recorte: quadros 2880–4319, equivalentes a 120–180 s;
+- saída esperada: 1440 quadros, 1920×1080, 24 fps, YUV 4:2:0 de 8 bits;
+- tamanho esperado do trecho normalizado: `4478976000` bytes.
+
+No Windows, a preparação é executada sem materializar o Y4M completo:
+
+```powershell
+python prepare_y4m_source.py `
+  --config y4m_source_config.sita_sings_the_blues.json `
+  --input "D:\vvc-stage55\sources\originals\sita_sings_the_blues_1080p24.y4m.xz" `
+  --output "D:\vvc-stage55\sources\normalized\sita_sings_the_blues_1080p24_60s.yuv" `
+  --provenance "D:\vvc-stage55\sources\normalized\sita_sings_the_blues_1080p24_60s.provenance.json"
+```
+
+O SHA-256 do YUV normalizado e a proveniência efetiva serão incorporados
+somente após a execução local bem-sucedida. A matriz VVenC permanece idêntica
+aos conteúdos anteriores e está declarada em
+`vvc_pipeline_config.sita_sings_the_blues.example.json`.

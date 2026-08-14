@@ -57,6 +57,9 @@ class ClipConfig:
     fps_den: int
     start_frame: int
     frame_count: int
+    source_fps_num: int | None = None
+    source_fps_den: int | None = None
+    frame_rate_policy: str = "preserve"
     pixel_format: str = "yuv420p"
 
     def __post_init__(self) -> None:
@@ -66,6 +69,32 @@ class ClipConfig:
             raise ValueError("YUV 4:2:0 exige largura e altura pares")
         if self.fps_num <= 0 or self.fps_den <= 0:
             raise ValueError("clip.fps_num e clip.fps_den devem ser positivos")
+        if (self.source_fps_num is None) != (self.source_fps_den is None):
+            raise ValueError(
+                "clip.source_fps_num e clip.source_fps_den devem ser "
+                "informados juntos"
+            )
+        if self.source_fps_num is not None and (
+            self.source_fps_num <= 0 or self.source_fps_den <= 0
+        ):
+            raise ValueError(
+                "clip.source_fps_num e clip.source_fps_den devem ser positivos"
+            )
+        if self.frame_rate_policy not in {"preserve", "reinterpret"}:
+            raise ValueError(
+                "clip.frame_rate_policy deve ser preserve ou reinterpret"
+            )
+        source_fps = self.expected_source_fps
+        output_fps = (self.fps_num, self.fps_den)
+        if self.frame_rate_policy == "preserve" and source_fps != output_fps:
+            raise ValueError(
+                "clip.frame_rate_policy=preserve exige cadências de fonte e "
+                "saída idênticas"
+            )
+        if self.frame_rate_policy == "reinterpret" and source_fps == output_fps:
+            raise ValueError(
+                "clip.frame_rate_policy=reinterpret exige cadências distintas"
+            )
         if self.start_frame < 0:
             raise ValueError("clip.start_frame não pode ser negativo")
         if self.frame_count <= 0:
@@ -94,6 +123,33 @@ class ClipConfig:
     @property
     def duration_s(self) -> float:
         return self.frame_count * self.fps_den / self.fps_num
+
+    @property
+    def expected_source_fps(self) -> tuple[int, int]:
+        return (
+            self.source_fps_num or self.fps_num,
+            self.source_fps_den or self.fps_den,
+        )
+
+    @property
+    def source_duration_s(self) -> float:
+        source_num, source_den = self.expected_source_fps
+        return self.frame_count * source_den / source_num
+
+    @property
+    def source_start_time_s(self) -> float:
+        source_num, source_den = self.expected_source_fps
+        return self.start_frame * source_den / source_num
+
+    @property
+    def source_end_time_s(self) -> float:
+        source_num, source_den = self.expected_source_fps
+        return self.end_frame * source_den / source_num
+
+    @property
+    def playback_speed_factor(self) -> float:
+        source_num, source_den = self.expected_source_fps
+        return self.fps_num * source_den / (self.fps_den * source_num)
 
 
 @dataclass(frozen=True)
@@ -169,6 +225,19 @@ def load_source_preparation_config(
             fps_den=int(clip_raw.get("fps_den", 1)),
             start_frame=int(clip_raw["start_frame"]),
             frame_count=int(clip_raw["frame_count"]),
+            source_fps_num=(
+                int(clip_raw["source_fps_num"])
+                if clip_raw.get("source_fps_num") is not None
+                else None
+            ),
+            source_fps_den=(
+                int(clip_raw["source_fps_den"])
+                if clip_raw.get("source_fps_den") is not None
+                else None
+            ),
+            frame_rate_policy=str(
+                clip_raw.get("frame_rate_policy", "preserve")
+            ),
             pixel_format=str(clip_raw.get("pixel_format", "yuv420p")),
         ),
         ffmpeg_executable=str(raw.get("ffmpeg_executable", "ffmpeg")),
@@ -276,11 +345,12 @@ def parse_y4m_header(header: bytes) -> Y4MHeader:
 
 def _validate_header(header: Y4MHeader, clip: ClipConfig) -> None:
     actual = (header.width, header.height, header.fps_num, header.fps_den)
-    expected = (clip.width, clip.height, clip.fps_num, clip.fps_den)
+    source_fps_num, source_fps_den = clip.expected_source_fps
+    expected = (clip.width, clip.height, source_fps_num, source_fps_den)
     if actual != expected:
         raise ValueError(
-            "a geometria/frequência do Y4M difere da configuração: "
-            f"detectado={actual}, esperado={expected}"
+            "a geometria/frequência de origem do Y4M difere da configuração: "
+            f"detectado={actual}, esperado_cabecalho={expected}"
         )
 
 
@@ -521,6 +591,13 @@ def prepare_source(
             f"extraindo quadros {clip.start_frame}..{clip.end_frame - 1} "
             "sem materializar o Y4M completo"
         )
+        if clip.frame_rate_policy == "reinterpret":
+            source_num, source_den = clip.expected_source_fps
+            progress(
+                "reinterpretando a cadência "
+                f"{source_num}/{source_den} como {clip.fps_num}/{clip.fps_den} "
+                "sem duplicar ou descartar quadros"
+            )
     try:
         header = _stream_archive(archive, command, popen_factory, clip)
         actual_size = temporary_output.stat().st_size
@@ -558,9 +635,22 @@ def prepare_source(
             "end_frame_exclusive": clip.end_frame,
             "frame_count": clip.frame_count,
             "duration_s": clip.duration_s,
+            "source_duration_s": clip.source_duration_s,
+            "source_start_time_s": clip.source_start_time_s,
+            "source_end_time_s": clip.source_end_time_s,
             "size_bytes": clip.output_yuv.stat().st_size,
             "sha256": output_hash,
             "pixel_format": clip.pixel_format,
+            "frame_rate": {
+                "source_num": clip.expected_source_fps[0],
+                "source_den": clip.expected_source_fps[1],
+                "normalized_num": clip.fps_num,
+                "normalized_den": clip.fps_den,
+                "policy": clip.frame_rate_policy,
+                "playback_speed_factor": clip.playback_speed_factor,
+                "frame_duplication": False,
+                "frame_dropping": False,
+            },
         },
         "ffmpeg": tool,
         "ffmpeg_command": command,

@@ -15,6 +15,9 @@
     "height": 1080,
     "fps_num": 24,
     "fps_den": 1,
+    "source_fps_num": 24000,
+    "source_fps_den": 1001,
+    "frame_rate_policy": "reinterpret",
     "start_frame": 2880,
     "frame_count": 1440,
     "pixel_format": "yuv420p"

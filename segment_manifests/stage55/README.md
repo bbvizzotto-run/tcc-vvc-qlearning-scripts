@@ -153,7 +153,11 @@ de codificação:
   músicas; este pipeline descarta o áudio e processa somente os quadros;
 - SHA-256 verificado do XZ:
   `e4e8945f967ad2451d6fb663e4ef93008fea75460e6c5c1033e255a526710902`;
-- recorte: quadros 2880–4319, equivalentes a 120–180 s;
+- cadência declarada no Y4M: `24000/1001` fps (aproximadamente 23,976);
+- recorte: quadros 2880–4319, correspondentes a 120,120–180,180 s na fonte;
+- normalização temporal: os mesmos 1440 quadros são reinterpretados a 24 fps,
+  sem duplicação ou descarte, produzindo exatamente 60 s (aceleração de fator
+  1,001);
 - saída esperada: 1440 quadros, 1920×1080, 24 fps, YUV 4:2:0 de 8 bits;
 - tamanho esperado do trecho normalizado: `4478976000` bytes.
 

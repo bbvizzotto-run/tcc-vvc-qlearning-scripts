@@ -238,6 +238,67 @@ class Y4MSourcePreparationTest(unittest.TestCase):
                 )
             self.assertFalse(config.clip.output_yuv.exists())
 
+    def test_reinterprets_fractional_source_rate_without_resampling(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            archive = self._archive(root)
+            config_path = self._configuration(root, archive)
+            raw = json.loads(config_path.read_text(encoding="utf-8"))
+            raw["clip"].update(
+                {
+                    "fps_num": 4,
+                    "source_fps_num": 2,
+                    "source_fps_den": 1,
+                    "frame_rate_policy": "reinterpret",
+                }
+            )
+            config_path.write_text(json.dumps(raw), encoding="utf-8")
+            config = load_source_preparation_config(config_path)
+            factory = FakePopenFactory(b"x" * 12)
+            result = prepare_source(
+                config,
+                popen_factory=factory,
+                ffmpeg_info={"path": "fake", "version": "fake"},
+            )
+
+        self.assertEqual(result["clip"]["source_duration_s"], 1.0)
+        self.assertEqual(result["clip"]["duration_s"], 0.5)
+        self.assertEqual(
+            result["clip"]["frame_rate"],
+            {
+                "source_num": 2,
+                "source_den": 1,
+                "normalized_num": 4,
+                "normalized_den": 1,
+                "policy": "reinterpret",
+                "playback_speed_factor": 2.0,
+                "frame_duplication": False,
+                "frame_dropping": False,
+            },
+        )
+        command = factory.processes[0].command
+        video_filter = command[command.index("-vf") + 1]
+        self.assertNotIn("fps=", video_filter)
+        self.assertEqual(command[command.index("-fps_mode") + 1], "passthrough")
+        self.assertEqual(factory.processes[0].stdin.data.count(b"FRAME"), 3)
+
+    def test_rejects_an_unacknowledged_frame_rate_change(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            archive = self._archive(root)
+            config_path = self._configuration(root, archive)
+            raw = json.loads(config_path.read_text(encoding="utf-8"))
+            raw["clip"].update(
+                {
+                    "source_fps_num": 24000,
+                    "source_fps_den": 1001,
+                }
+            )
+            config_path.write_text(json.dumps(raw), encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "policy=preserve"):
+                load_source_preparation_config(config_path)
+
     def test_refuses_existing_outputs_and_reports_ffmpeg_failures(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -313,9 +374,15 @@ class Y4MSourcePreparationTest(unittest.TestCase):
         )
         self.assertEqual((config.clip.width, config.clip.height), (1920, 1080))
         self.assertEqual((config.clip.fps_num, config.clip.fps_den), (24, 1))
+        self.assertEqual(config.clip.expected_source_fps, (24000, 1001))
+        self.assertEqual(config.clip.frame_rate_policy, "reinterpret")
         self.assertEqual(config.clip.start_frame, 2880)
         self.assertEqual(config.clip.frame_count, 1440)
         self.assertEqual(config.clip.duration_s, 60.0)
+        self.assertAlmostEqual(config.clip.source_duration_s, 60.06)
+        self.assertAlmostEqual(config.clip.source_start_time_s, 120.12)
+        self.assertAlmostEqual(config.clip.source_end_time_s, 180.18)
+        self.assertAlmostEqual(config.clip.playback_speed_factor, 1.001)
         self.assertEqual(config.clip.expected_output_size_bytes, 4478976000)
 
 

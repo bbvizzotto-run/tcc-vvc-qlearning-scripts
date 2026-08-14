@@ -189,7 +189,9 @@ canônicos, proveniências e detalhes do caso lossless estão em
 `segment_manifests/stage55/`.
 
 Para o terceiro conteúdo, a Etapa 5.5e congela a fonte lossless de *Sita Sings
-the Blues*, seu SHA-256 e o mesmo recorte de 120–180 s. A configuração
+the Blues*, seu SHA-256 e o mesmo recorte de 1440 quadros. O cabeçalho original
+usa `24000/1001` fps; os quadros são reinterpretados a 24 fps, sem duplicação ou
+descarte, para manter 60 segmentos de 1 s. A configuração
 `y4m_source_config.sita_sings_the_blues.json` reutiliza o extrator em fluxo e
 `vvc_pipeline_config.sita_sings_the_blues.example.json` preserva a matriz de 60
 segmentos e quatro alvos. Vídeo, YUV e bitstreams permanecem fora do Git.

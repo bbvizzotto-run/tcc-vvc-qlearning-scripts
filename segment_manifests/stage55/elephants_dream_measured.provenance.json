@@ -1,0 +1,168 @@
+{
+  "algorithm": {
+    "formula": "sum(size_bytes) * 8 / sum(duration_s) / 1000",
+    "name": "aggregate_payload_bitrate_round_half_up",
+    "purpose": "separate the VVenC encoder target from the operational representation bitrate used by ABR controllers",
+    "rounding": "nearest integer kbps, ROUND_HALF_UP"
+  },
+  "canonicalization_schema_version": 2,
+  "input": {
+    "manifest_file": "elephants_dream_full.csv",
+    "manifest_sha256": "aca6c0ecdf92eec3ede5652fa4fd92daa6c628196c3320df6817c5133b48128d",
+    "provenance_file": "elephants_dream_full.provenance.json",
+    "provenance_sha256": "71b1b41d7a250808057ee34d004801ec50bee1d837acd294b30a6d1a3559cde0",
+    "source_preparation_provenance_file": "elephants_dream_1080p24_60s.provenance.json",
+    "source_preparation_provenance_sha256": "1dec0b3ca02c6f1bc3e35ab91441993624bf4d8b1d25058bb5feacccad6bd5ba"
+  },
+  "output": {
+    "manifest_file": "elephants_dream_measured.csv",
+    "manifest_sha256": "9608da2b98c98a00399b05782fe34b3877aec6f154c436fdbdc44c14911a6e49",
+    "operational_bitrates_kbps": [
+      1064,
+      1847,
+      3097,
+      5182
+    ],
+    "row_count": 240,
+    "segment_count": 60
+  },
+  "representations": [
+    {
+      "encoder_target_kbps": 1000,
+      "max_segment_bitrate_kbps": "1893.672",
+      "mean_psnr_y_db": "42.56271",
+      "measured_bitrate_kbps": "1063.5448",
+      "min_segment_bitrate_kbps": "12.288",
+      "operational_bitrate_kbps": 1064,
+      "representation_id": "L0",
+      "total_duration_s": "60",
+      "total_size_bytes": 7976586
+    },
+    {
+      "encoder_target_kbps": 2000,
+      "max_segment_bitrate_kbps": "2681.456",
+      "mean_psnr_y_db": "44.472146",
+      "measured_bitrate_kbps": "1847.026533",
+      "min_segment_bitrate_kbps": "12.448",
+      "operational_bitrate_kbps": 1847,
+      "representation_id": "L1",
+      "total_duration_s": "60",
+      "total_size_bytes": 13852699
+    },
+    {
+      "encoder_target_kbps": 4000,
+      "max_segment_bitrate_kbps": "4173.176",
+      "mean_psnr_y_db": "46.183876",
+      "measured_bitrate_kbps": "3096.570933",
+      "min_segment_bitrate_kbps": "12.64",
+      "operational_bitrate_kbps": 3097,
+      "representation_id": "L2",
+      "total_duration_s": "60",
+      "total_size_bytes": 23224282
+    },
+    {
+      "encoder_target_kbps": 8000,
+      "max_segment_bitrate_kbps": "8322.296",
+      "mean_psnr_y_db": "47.948724",
+      "measured_bitrate_kbps": "5182.347067",
+      "min_segment_bitrate_kbps": "12.72",
+      "operational_bitrate_kbps": 5182,
+      "representation_id": "L3",
+      "total_duration_s": "60",
+      "total_size_bytes": 38867603
+    }
+  ],
+  "source_execution_audit": {
+    "commands_validated": 240,
+    "configuration_sha256": "105e07e87d49f8fe59e15915f8cdf8e62cc2011348adffb8ce83abbd4d65ddc4",
+    "generated_at_utc": "2026-08-14T13:04:07.067566+00:00",
+    "pipeline": {
+      "git_commit": "6f4829c87237e67c1b314a14662c207d9d6c8c57",
+      "git_dirty": false,
+      "module": "D:\\tcc-vvc-qlearning-scripts\\vvc_segment_pipeline.py",
+      "module_sha256": "2cee8323dc2d3e7c445b99dd1c9ac52252d37ed4c9a9ba82b6c830cd18a32319"
+    },
+    "pipeline_schema_version": 1,
+    "poc0idr_validated": true,
+    "runtime": {
+      "platform": "Windows-10-10.0.26200-SP0",
+      "python": "3.9.13"
+    },
+    "source": {
+      "available_frames": 1440,
+      "path": "D:\\vvc-stage55\\sources\\normalized\\elephants_dream_1080p24_60s.yuv",
+      "required_frames": 1440,
+      "sha256": "8bc7a47e03d2fd1d2bd7f271a80563771579e7ce06f42cd2188a3a7a25790a80",
+      "size_bytes": 4478976000
+    },
+    "source_manifest_sha256_validated": "aca6c0ecdf92eec3ede5652fa4fd92daa6c628196c3320df6817c5133b48128d",
+    "tools": {
+      "decoder": {
+        "path": "D:\\vvc-tools\\install\\vvdec\\bin\\vvdecapp.exe",
+        "version": "vvdecapp.exe version 3.2.0"
+      },
+      "encoder": {
+        "path": "D:\\vvc-tools\\install\\vvenc\\bin\\vvencapp.exe",
+        "version": "vvencapp version 1.14.0"
+      }
+    }
+  },
+  "source_preparation_audit": {
+    "clip": {
+      "duration_s": 60.0,
+      "end_frame_exclusive": 4320,
+      "frame_count": 1440,
+      "path": "D:\\vvc-stage55\\sources\\normalized\\elephants_dream_1080p24_60s.yuv",
+      "pixel_format": "yuv420p",
+      "sha256": "8bc7a47e03d2fd1d2bd7f271a80563771579e7ce06f42cd2188a3a7a25790a80",
+      "size_bytes": 4478976000,
+      "start_frame": 2880
+    },
+    "configuration_sha256": "15f2e2f3f22b28234e94c29641021883de0a08a4c294da65d40975bb4e06ebe2",
+    "ffmpeg": {
+      "path": "C:\\Users\\bbviz\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-7.1-full_build\\bin\\ffmpeg.EXE",
+      "version": "ffmpeg version 7.1-full_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers"
+    },
+    "generated_at_utc": "2026-08-14T00:01:33.236390+00:00",
+    "pipeline": {
+      "git_commit": "6f4829c87237e67c1b314a14662c207d9d6c8c57",
+      "git_dirty": false,
+      "module": "D:\\tcc-vvc-qlearning-scripts\\y4m_source_preparation.py",
+      "module_sha256": "96622a477003683bf91e408202215f1ed25f98733b80d4562df6c4262bb9fd1a"
+    },
+    "provenance_file": "elephants_dream_1080p24_60s.provenance.json",
+    "provenance_sha256": "1dec0b3ca02c6f1bc3e35ab91441993624bf4d8b1d25058bb5feacccad6bd5ba",
+    "runtime": {
+      "platform": "Windows-10-10.0.26200-SP0",
+      "python": "3.9.13"
+    },
+    "source_archive": {
+      "license_name": "Creative Commons Attribution 2.5",
+      "license_url": "https://creativecommons.org/licenses/by/2.5/",
+      "path": "D:\\vvc-stage55\\sources\\originals\\elephants_dream_1080p24.y4m.xz",
+      "sha256": "aef14c7ff450cd44e75760b6c0bef5ed9dc62f6af4d8c68816128ea74fb782b4",
+      "size_bytes": 7656985024,
+      "url": "https://media.xiph.org/video/derf/y4m/elephants_dream_1080p24.y4m.xz",
+      "y4m_header": {
+        "chroma": "420jpeg",
+        "fps_den": 1,
+        "fps_num": 24,
+        "height": 1080,
+        "interlace": "p",
+        "raw": "YUV4MPEG2 C420jpeg W1920 H1080 F24:1 Ip A1:1",
+        "width": 1920
+      }
+    },
+    "source_preparation_schema_version": 1
+  },
+  "validation": {
+    "complete_ladder": true,
+    "complete_psnr_y": true,
+    "complete_sha256": true,
+    "lossless_psnr_cap_db": "100",
+    "lossless_psnr_ties": 6,
+    "psnr_y_monotonicity_policy": "strictly increasing except equal values at the 100 dB lossless cap",
+    "source_sequence": "elephants_dream",
+    "strictly_increasing_size_per_segment": true
+  }
+}

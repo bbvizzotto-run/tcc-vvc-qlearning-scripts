@@ -14,7 +14,8 @@ from typing import Sequence
 from segment_manifest import load_segment_manifest
 
 
-CANONICALIZATION_SCHEMA_VERSION = 1
+CANONICALIZATION_SCHEMA_VERSION = 2
+LOSSLESS_PSNR_CAP_DB = Decimal("100")
 CANONICAL_FIELDS = (
     "sequence",
     "segment",
@@ -97,7 +98,8 @@ def _validate_complete_metrics(rows: Sequence[dict[str, str]]) -> None:
                 )
 
 
-def _validate_monotonicity(rows: Sequence[dict[str, str]]) -> None:
+def _validate_monotonicity(rows: Sequence[dict[str, str]]) -> int:
+    lossless_psnr_ties = 0
     by_segment: dict[int, list[dict[str, str]]] = defaultdict(list)
     for row in rows:
         by_segment[int(row["segment"])].append(row)
@@ -110,12 +112,20 @@ def _validate_monotonicity(rows: Sequence[dict[str, str]]) -> None:
                     f"{segment}: {previous['bitrate_kbps']} -> "
                     f"{current['bitrate_kbps']} kbps"
                 )
-            if Decimal(current["psnr_y_db"]) <= Decimal(previous["psnr_y_db"]):
+            previous_psnr = Decimal(previous["psnr_y_db"])
+            current_psnr = Decimal(current["psnr_y_db"])
+            if current_psnr < previous_psnr or (
+                current_psnr == previous_psnr
+                and current_psnr != LOSSLESS_PSNR_CAP_DB
+            ):
                 raise ValueError(
-                    "psnr_y_db não é estritamente crescente no segmento "
+                    "psnr_y_db não segue a política de monotonicidade no segmento "
                     f"{segment}: {previous['bitrate_kbps']} -> "
                     f"{current['bitrate_kbps']} kbps"
                 )
+            if current_psnr == previous_psnr == LOSSLESS_PSNR_CAP_DB:
+                lossless_psnr_ties += 1
+    return lossless_psnr_ties
 
 
 def _representation_mappings(
@@ -251,6 +261,70 @@ def _audit_source_provenance(
     }
 
 
+def _audit_source_preparation(
+    provenance_path: Path,
+    vvc_source: object,
+) -> dict[str, object]:
+    raw = json.loads(provenance_path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise ValueError("a proveniência da preparação deve ser um objeto JSON")
+    if not isinstance(vvc_source, dict):
+        raise ValueError("proveniência VVC sem resumo da fonte")
+
+    archive = raw.get("source_archive")
+    clip = raw.get("clip")
+    configuration = raw.get("configuration")
+    if not isinstance(archive, dict):
+        raise ValueError("proveniência da preparação sem source_archive")
+    if not isinstance(clip, dict):
+        raise ValueError("proveniência da preparação sem clip")
+    if not isinstance(configuration, dict):
+        raise ValueError("proveniência da preparação sem configuration")
+    configured_source = configuration.get("source")
+    configured_clip = configuration.get("clip")
+    if not isinstance(configured_source, dict) or not isinstance(
+        configured_clip,
+        dict,
+    ):
+        raise ValueError("configuração da preparação incompleta")
+
+    if archive.get("sha256") != configured_source.get("expected_sha256"):
+        raise ValueError("hash do XZ difere da configuração da preparação")
+    if archive.get("url") != configured_source.get("url"):
+        raise ValueError("URL do XZ difere da configuração da preparação")
+    if clip.get("sha256") != vvc_source.get("sha256"):
+        raise ValueError("hash do YUV preparado difere da fonte do pipeline VVC")
+    if int(clip.get("size_bytes", -1)) != int(
+        vvc_source.get("size_bytes", -2)
+    ):
+        raise ValueError("tamanho do YUV preparado difere da fonte do pipeline VVC")
+    if int(clip.get("frame_count", -1)) != int(
+        vvc_source.get("available_frames", -2)
+    ):
+        raise ValueError("quadros do YUV preparado diferem da fonte do pipeline VVC")
+
+    for field in ("start_frame", "frame_count", "pixel_format"):
+        if clip.get(field) != configured_clip.get(field):
+            raise ValueError(
+                f"{field} do trecho difere da configuração da preparação"
+            )
+
+    return {
+        "provenance_file": provenance_path.name,
+        "provenance_sha256": _sha256(provenance_path),
+        "source_preparation_schema_version": raw.get(
+            "source_preparation_schema_version"
+        ),
+        "generated_at_utc": raw.get("generated_at_utc"),
+        "configuration_sha256": raw.get("configuration_sha256"),
+        "source_archive": archive,
+        "clip": clip,
+        "ffmpeg": raw.get("ffmpeg"),
+        "pipeline": raw.get("pipeline"),
+        "runtime": raw.get("runtime"),
+    }
+
+
 def _write_csv(path: Path, rows: Sequence[dict[str, object]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
@@ -281,25 +355,30 @@ def canonicalize_manifest(
     output_manifest: str | Path,
     output_provenance: str | Path | None = None,
     *,
+    source_preparation_provenance: str | Path | None = None,
     overwrite: bool = False,
 ) -> dict[str, object]:
     """Converte alvos de encoder em rótulos de taxa média medida."""
 
     source_path = Path(source_manifest).resolve()
     provenance_path = Path(source_provenance).resolve()
+    preparation_path = (
+        Path(source_preparation_provenance).resolve()
+        if source_preparation_provenance is not None
+        else None
+    )
     output_path = Path(output_manifest).resolve()
     canonical_provenance_path = (
         Path(output_provenance).resolve()
         if output_provenance is not None
         else output_path.with_suffix(".provenance.json")
     )
-    if output_path in {source_path, provenance_path}:
+    input_paths = {source_path, provenance_path}
+    if preparation_path is not None:
+        input_paths.add(preparation_path)
+    if output_path in input_paths:
         raise ValueError("as entradas não podem ser substituídas")
-    if canonical_provenance_path in {
-        source_path,
-        provenance_path,
-        output_path,
-    }:
+    if canonical_provenance_path in input_paths | {output_path}:
         raise ValueError("a proveniência de saída deve usar um arquivo distinto")
     if output_path.suffix.lower() != ".csv":
         raise ValueError("output_manifest deve usar a extensão .csv")
@@ -313,7 +392,7 @@ def canonicalize_manifest(
     raw_manifest = load_segment_manifest(source_path)
     _, rows = _load_rows(source_path)
     _validate_complete_metrics(rows)
-    _validate_monotonicity(rows)
+    lossless_psnr_ties = _validate_monotonicity(rows)
     mappings = _representation_mappings(rows)
     targets = tuple(mapping.encoder_target_kbps for mapping in mappings)
     raw_provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
@@ -325,6 +404,11 @@ def canonicalize_manifest(
         targets,
         raw_manifest.manifest_sha256 or "",
         raw_manifest.sequence,
+    )
+    preparation_audit = (
+        _audit_source_preparation(preparation_path, raw_provenance.get("source"))
+        if preparation_path is not None
+        else None
     )
 
     by_target = {mapping.encoder_target_kbps: mapping for mapping in mappings}
@@ -369,6 +453,16 @@ def canonicalize_manifest(
             "manifest_sha256": _sha256(source_path),
             "provenance_file": provenance_path.name,
             "provenance_sha256": _sha256(provenance_path),
+            **(
+                {
+                    "source_preparation_provenance_file": preparation_path.name,
+                    "source_preparation_provenance_sha256": _sha256(
+                        preparation_path
+                    ),
+                }
+                if preparation_path is not None
+                else {}
+            ),
         },
         "output": {
             "manifest_file": output_path.name,
@@ -381,12 +475,22 @@ def canonicalize_manifest(
         },
         "representations": [mapping.to_dict() for mapping in mappings],
         "source_execution_audit": source_audit,
+        **(
+            {"source_preparation_audit": preparation_audit}
+            if preparation_audit is not None
+            else {}
+        ),
         "validation": {
             "complete_ladder": True,
             "complete_psnr_y": True,
             "complete_sha256": True,
             "strictly_increasing_size_per_segment": True,
-            "strictly_increasing_psnr_y_per_segment": True,
+            "psnr_y_monotonicity_policy": (
+                "strictly increasing except equal values at the "
+                "100 dB lossless cap"
+            ),
+            "lossless_psnr_cap_db": _decimal_text(LOSSLESS_PSNR_CAP_DB),
+            "lossless_psnr_ties": lossless_psnr_ties,
             "source_sequence": raw_manifest.sequence,
         },
     }

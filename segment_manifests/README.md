@@ -101,7 +101,12 @@ e expõe ainda `representation_id` (`L0`, `L1`, ...).
 O processo é determinístico e produz proveniência própria com os hashes das
 duas entradas, mapeamento entre alvo e taxa medida, estatísticas de qualidade e
 resultado das validações. Consulte `stage55/README.md` para a execução congelada
-do Big Buck Bunny.
+do Big Buck Bunny e do Elephants Dream. A política de PSNR exige crescimento
+estrito entre representações, exceto quando ambas atingem o teto lossless de
+100 dB usado pelo projeto; qualquer empate abaixo desse teto continua inválido.
+Quando `--source-preparation-provenance` é informado, a canonicalização também
+confirma que hash, tamanho e número de quadros do YUV preparado coincidem com a
+fonte efetivamente usada pelo pipeline VVC.
 
 Fontes distribuídas como Y4M comprimido com XZ podem ser normalizadas com
 `prepare_y4m_source.py`. A ferramenta valida o SHA-256 do arquivo completo e

@@ -1,0 +1,94 @@
+{
+  "source_preparation_schema_version": 1,
+  "generated_at_utc": "2026-08-14T00:01:33.236390+00:00",
+  "configuration_file": "D:\\tcc-vvc-qlearning-scripts\\y4m_source_config.elephants_dream.json",
+  "configuration_sha256": "15f2e2f3f22b28234e94c29641021883de0a08a4c294da65d40975bb4e06ebe2",
+  "configuration": {
+    "schema_version": 1,
+    "source": {
+      "name": "elephants_dream",
+      "url": "https://media.xiph.org/video/derf/y4m/elephants_dream_1080p24.y4m.xz",
+      "license_name": "Creative Commons Attribution 2.5",
+      "license_url": "https://creativecommons.org/licenses/by/2.5/",
+      "input_xz": "D:\\vvc-stage55\\sources\\originals\\elephants_dream_1080p24.y4m.xz",
+      "expected_sha256": "aef14c7ff450cd44e75760b6c0bef5ed9dc62f6af4d8c68816128ea74fb782b4"
+    },
+    "clip": {
+      "output_yuv": "D:\\vvc-stage55\\sources\\normalized\\elephants_dream_1080p24_60s.yuv",
+      "provenance_path": "D:\\vvc-stage55\\sources\\normalized\\elephants_dream_1080p24_60s.provenance.json",
+      "width": 1920,
+      "height": 1080,
+      "fps_num": 24,
+      "fps_den": 1,
+      "start_frame": 2880,
+      "frame_count": 1440,
+      "pixel_format": "yuv420p"
+    },
+    "ffmpeg_executable": "ffmpeg"
+  },
+  "source_archive": {
+    "path": "D:\\vvc-stage55\\sources\\originals\\elephants_dream_1080p24.y4m.xz",
+    "url": "https://media.xiph.org/video/derf/y4m/elephants_dream_1080p24.y4m.xz",
+    "license_name": "Creative Commons Attribution 2.5",
+    "license_url": "https://creativecommons.org/licenses/by/2.5/",
+    "size_bytes": 7656985024,
+    "sha256": "aef14c7ff450cd44e75760b6c0bef5ed9dc62f6af4d8c68816128ea74fb782b4",
+    "y4m_header": {
+      "raw": "YUV4MPEG2 C420jpeg W1920 H1080 F24:1 Ip A1:1",
+      "width": 1920,
+      "height": 1080,
+      "fps_num": 24,
+      "fps_den": 1,
+      "interlace": "p",
+      "chroma": "420jpeg"
+    }
+  },
+  "clip": {
+    "path": "D:\\vvc-stage55\\sources\\normalized\\elephants_dream_1080p24_60s.yuv",
+    "start_frame": 2880,
+    "end_frame_exclusive": 4320,
+    "frame_count": 1440,
+    "duration_s": 60.0,
+    "size_bytes": 4478976000,
+    "sha256": "8bc7a47e03d2fd1d2bd7f271a80563771579e7ce06f42cd2188a3a7a25790a80",
+    "pixel_format": "yuv420p"
+  },
+  "ffmpeg": {
+    "path": "C:\\Users\\bbviz\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-7.1-full_build\\bin\\ffmpeg.EXE",
+    "version": "ffmpeg version 7.1-full_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers"
+  },
+  "ffmpeg_command": [
+    "C:\\Users\\bbviz\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-7.1-full_build\\bin\\ffmpeg.EXE",
+    "-hide_banner",
+    "-loglevel",
+    "warning",
+    "-y",
+    "-f",
+    "yuv4mpegpipe",
+    "-i",
+    "pipe:0",
+    "-map",
+    "0:v:0",
+    "-vf",
+    "trim=start_frame=2880:end_frame=4320,setpts=PTS-STARTPTS",
+    "-frames:v",
+    "1440",
+    "-pix_fmt",
+    "yuv420p",
+    "-fps_mode",
+    "passthrough",
+    "-f",
+    "rawvideo",
+    "D:\\vvc-stage55\\sources\\normalized\\elephants_dream_1080p24_60s.yuv.tmp"
+  ],
+  "pipeline": {
+    "module": "D:\\tcc-vvc-qlearning-scripts\\y4m_source_preparation.py",
+    "module_sha256": "96622a477003683bf91e408202215f1ed25f98733b80d4562df6c4262bb9fd1a",
+    "git_commit": "6f4829c87237e67c1b314a14662c207d9d6c8c57",
+    "git_dirty": false
+  },
+  "runtime": {
+    "python": "3.9.13",
+    "platform": "Windows-10-10.0.26200-SP0"
+  }
+}

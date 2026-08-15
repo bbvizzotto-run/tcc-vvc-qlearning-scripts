@@ -208,6 +208,10 @@ agregado dos 1440 PNGs,
 `1fc3a3c62782b450294563125f7d5e400d4379c4dce9a00fc237ed37fda7f48a`.
 O YUV normalizado possui SHA-256
 `f6033935e2b1a8ef06d8f4d25a78b86147dcc6dfd3638c730a7ab18f59992844`.
+A codificação completa, executada com o mesmo protocolo dos três conteúdos
+anteriores, produziu a escada medida `[894, 1487, 2327, 3593]` kbps. Os
+manifestos bruto e canônico, as proveniências da fonte e da codificação e a
+auditoria dos 1440 registros PNG estão em `segment_manifests/stage55/`.
 
 ### Importação de pacotes DVB-DASH VVC
 

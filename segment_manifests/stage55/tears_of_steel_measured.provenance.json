@@ -1,0 +1,210 @@
+{
+  "algorithm": {
+    "formula": "sum(size_bytes) * 8 / sum(duration_s) / 1000",
+    "name": "aggregate_payload_bitrate_round_half_up",
+    "purpose": "separate the VVenC encoder target from the operational representation bitrate used by ABR controllers",
+    "rounding": "nearest integer kbps, ROUND_HALF_UP"
+  },
+  "canonicalization_schema_version": 2,
+  "input": {
+    "manifest_file": "tears_of_steel_full.csv",
+    "manifest_sha256": "c883c0c809078bc4441de0cb5ba10e53e7a2a327e7bb68cf7a9689c920eead26",
+    "provenance_file": "tears_of_steel_full.provenance.json",
+    "provenance_sha256": "b72c816a2128ae14e021a4794eb94aea1ac23d58a0497f27ee5c2013f3eb5f33",
+    "source_preparation_provenance_file": "tears_of_steel_1080p24_60s.provenance.json",
+    "source_preparation_provenance_sha256": "1f3a1178b7f78413d68a564d2f47c0dabbcb5a3bfeed9e6152fda77d955f027e"
+  },
+  "output": {
+    "manifest_file": "tears_of_steel_measured.csv",
+    "manifest_sha256": "ce2f9591bb2a553c7742ac84d98eaf56878f71b0238c90742e42712524d258a3",
+    "operational_bitrates_kbps": [
+      894,
+      1487,
+      2327,
+      3593
+    ],
+    "row_count": 240,
+    "segment_count": 60
+  },
+  "representations": [
+    {
+      "encoder_target_kbps": 1000,
+      "max_segment_bitrate_kbps": "1124.384",
+      "mean_psnr_y_db": "42.895118",
+      "measured_bitrate_kbps": "893.967733",
+      "min_segment_bitrate_kbps": "737.456",
+      "operational_bitrate_kbps": 894,
+      "representation_id": "L0",
+      "total_duration_s": "60",
+      "total_size_bytes": 6704758
+    },
+    {
+      "encoder_target_kbps": 2000,
+      "max_segment_bitrate_kbps": "2268.736",
+      "mean_psnr_y_db": "44.327531",
+      "measured_bitrate_kbps": "1487.107867",
+      "min_segment_bitrate_kbps": "1194.584",
+      "operational_bitrate_kbps": 1487,
+      "representation_id": "L1",
+      "total_duration_s": "60",
+      "total_size_bytes": 11153309
+    },
+    {
+      "encoder_target_kbps": 4000,
+      "max_segment_bitrate_kbps": "3940.648",
+      "mean_psnr_y_db": "45.214055",
+      "measured_bitrate_kbps": "2326.903067",
+      "min_segment_bitrate_kbps": "1696.816",
+      "operational_bitrate_kbps": 2327,
+      "representation_id": "L2",
+      "total_duration_s": "60",
+      "total_size_bytes": 17451773
+    },
+    {
+      "encoder_target_kbps": 8000,
+      "max_segment_bitrate_kbps": "7139.752",
+      "mean_psnr_y_db": "45.910313",
+      "measured_bitrate_kbps": "3593.2196",
+      "min_segment_bitrate_kbps": "2580.24",
+      "operational_bitrate_kbps": 3593,
+      "representation_id": "L3",
+      "total_duration_s": "60",
+      "total_size_bytes": 26949147
+    }
+  ],
+  "source_execution_audit": {
+    "commands_validated": 240,
+    "configuration_sha256": "f0010e135653215659d49c2538b453441d1c8d6e307a3a221a8eaf382e718580",
+    "generated_at_utc": "2026-08-15T14:10:26.607801+00:00",
+    "pipeline": {
+      "git_commit": "aea0f80a73ddd53cac1d15bb2e5df41d31990e46",
+      "git_dirty": false,
+      "module": "D:\\tcc-vvc-qlearning-scripts\\vvc_segment_pipeline.py",
+      "module_sha256": "f1653d67dbfc5c3cb176e2b5de57f622c3574d0f4430376edcb69792abec9764"
+    },
+    "pipeline_schema_version": 1,
+    "poc0idr_validated": true,
+    "runtime": {
+      "platform": "Windows-10-10.0.26200-SP0",
+      "python": "3.9.13"
+    },
+    "source": {
+      "available_frames": 1440,
+      "path": "D:\\vvc-stage55\\sources\\normalized\\tears_of_steel_1080p24_60s.yuv",
+      "required_frames": 1440,
+      "sha256": "f6033935e2b1a8ef06d8f4d25a78b86147dcc6dfd3638c730a7ab18f59992844",
+      "size_bytes": 4478976000
+    },
+    "source_manifest_sha256_validated": "c883c0c809078bc4441de0cb5ba10e53e7a2a327e7bb68cf7a9689c920eead26",
+    "tools": {
+      "decoder": {
+        "path": "D:\\vvc-tools\\install\\vvdec\\bin\\vvdecapp.exe",
+        "version": "vvdecapp.exe version 3.2.0"
+      },
+      "encoder": {
+        "path": "D:\\vvc-tools\\install\\vvenc\\bin\\vvencapp.exe",
+        "version": "vvencapp version 1.14.0"
+      }
+    }
+  },
+  "source_preparation_audit": {
+    "clip": {
+      "duration_s": 60.0,
+      "frame_count": 1440,
+      "height": 1080,
+      "path": "D:\\vvc-stage55\\sources\\normalized\\tears_of_steel_1080p24_60s.yuv",
+      "pixel_format": "yuv420p",
+      "sha256": "f6033935e2b1a8ef06d8f4d25a78b86147dcc6dfd3638c730a7ab18f59992844",
+      "size_bytes": 4478976000,
+      "width": 1920
+    },
+    "configuration_sha256": "aae0101bd15e903405f4540d624f683155ec1cfe48978d7c679067eaee73754b",
+    "frame_records_validated": 1440,
+    "generated_at_utc": "2026-08-15T01:41:43.008921+00:00",
+    "normalization": {
+      "active_region": {
+        "height": 800,
+        "width": 1920,
+        "x": 0,
+        "y": 140
+      },
+      "color": "black",
+      "command": [
+        "C:\\Users\\bbviz\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-7.1-full_build\\bin\\ffmpeg.EXE",
+        "-hide_banner",
+        "-loglevel",
+        "warning",
+        "-y",
+        "-framerate",
+        "24/1",
+        "-start_number",
+        "2881",
+        "-i",
+        "D:\\vvc-stage55\\sources\\originals\\tears_of_steel_1080bis_png\\%05d.png",
+        "-map",
+        "0:v:0",
+        "-vf",
+        "pad=1920:1080:0:140:color=black,format=yuv420p",
+        "-frames:v",
+        "1440",
+        "-fps_mode",
+        "passthrough",
+        "-f",
+        "rawvideo",
+        "D:\\vvc-stage55\\sources\\normalized\\tears_of_steel_1080p24_60s.yuv.tmp"
+      ],
+      "ffmpeg": {
+        "path": "C:\\Users\\bbviz\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-7.1-full_build\\bin\\ffmpeg.EXE",
+        "version": "ffmpeg version 7.1-full_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers"
+      },
+      "pad_x": 0,
+      "pad_y": 140,
+      "policy": "symmetric_letterbox"
+    },
+    "pipeline": {
+      "git_commit": "aea0f80a73ddd53cac1d15bb2e5df41d31990e46",
+      "git_dirty": false,
+      "module": "D:\\tcc-vvc-qlearning-scripts\\png_source_preparation.py",
+      "module_sha256": "1396ae379a10d4d2136f67ae6b721f344df47db8c64bab0bba78f940cfcd870a"
+    },
+    "provenance_file": "tears_of_steel_1080p24_60s.provenance.json",
+    "provenance_sha256": "1f3a1178b7f78413d68a564d2f47c0dabbcb5a3bfeed9e6152fda77d955f027e",
+    "quality_region_validated": true,
+    "runtime": {
+      "platform": "Windows-10-10.0.26200-SP0",
+      "python": "3.9.13"
+    },
+    "source_preparation_schema_version": 1,
+    "source_sequence": {
+      "base_url": "https://media.xiph.org/tearsofsteel/tearsofsteel-1080bis-png/",
+      "downloaded_frames": 0,
+      "duration_s": 60.0,
+      "expected_sequence_sha256": "1fc3a3c62782b450294563125f7d5e400d4379c4dce9a00fc237ed37fda7f48a",
+      "first_frame": 2881,
+      "fps_den": 1,
+      "fps_num": 24,
+      "frame_count": 1440,
+      "height": 800,
+      "index_url": "https://media.xiph.org/tearsofsteel/tearsofsteel-1080bis-png/",
+      "integrity_pinned": true,
+      "last_frame": 4320,
+      "license_name": "Creative Commons Attribution 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "name": "tears_of_steel",
+      "reused_frames": 1440,
+      "sequence_sha256": "1fc3a3c62782b450294563125f7d5e400d4379c4dce9a00fc237ed37fda7f48a",
+      "total_size_bytes": 2722906009,
+      "width": 1920
+    }
+  },
+  "validation": {
+    "complete_ladder": true,
+    "complete_psnr_y": true,
+    "complete_sha256": true,
+    "lossless_psnr_cap_db": "100",
+    "lossless_psnr_ties": 0,
+    "psnr_y_monotonicity_policy": "strictly increasing except equal values at the 100 dB lossless cap",
+    "source_sequence": "tears_of_steel",
+    "strictly_increasing_size_per_segment": true
+  }
+}

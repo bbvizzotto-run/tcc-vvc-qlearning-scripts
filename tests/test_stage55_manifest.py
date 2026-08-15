@@ -27,6 +27,9 @@ MANIFEST_PATHS = {
     "sita_sings_the_blues": (
         ROOT / "segment_manifests/stage55/sita_sings_the_blues_measured.csv"
     ),
+    "tears_of_steel": (
+        ROOT / "segment_manifests/stage55/tears_of_steel_measured.csv"
+    ),
 }
 
 
@@ -43,6 +46,7 @@ class Stage55ManifestIntegrationTest(unittest.TestCase):
             "big_buck_bunny": (1019, 1692, 2610, 3632),
             "elephants_dream": (1064, 1847, 3097, 5182),
             "sita_sings_the_blues": (973, 1801, 3219, 5583),
+            "tears_of_steel": (894, 1487, 2327, 3593),
         }
         for name, ladder in expected.items():
             with self.subTest(sequence=name):
@@ -163,6 +167,60 @@ class Stage55ManifestIntegrationTest(unittest.TestCase):
                 (
                     directory
                     / "sita_sings_the_blues_measured.provenance.json"
+                ).read_bytes(),
+            )
+
+    def test_tears_records_the_pinned_png_sequence_and_active_region(self):
+        provenance_path = (
+            ROOT
+            / "segment_manifests/stage55/tears_of_steel_measured.provenance.json"
+        )
+        provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+        preparation = provenance["source_preparation_audit"]
+
+        self.assertEqual(provenance["canonicalization_schema_version"], 2)
+        self.assertEqual(provenance["validation"]["lossless_psnr_ties"], 0)
+        self.assertFalse(
+            provenance["source_execution_audit"]["pipeline"]["git_dirty"]
+        )
+        self.assertEqual(preparation["frame_records_validated"], 1440)
+        self.assertTrue(preparation["quality_region_validated"])
+        self.assertTrue(preparation["source_sequence"]["integrity_pinned"])
+        self.assertEqual(
+            preparation["source_sequence"]["sequence_sha256"],
+            "1fc3a3c62782b450294563125f7d5e400d4379c4dce9a00fc237ed37fda7f48a",
+        )
+        self.assertEqual(
+            preparation["clip"]["sha256"],
+            "f6033935e2b1a8ef06d8f4d25a78b86147dcc6dfd3638c730a7ab18f59992844",
+        )
+        self.assertEqual(
+            preparation["normalization"]["active_region"],
+            {"x": 0, "y": 140, "width": 1920, "height": 800},
+        )
+
+    def test_tears_derivation_is_reproducible(self):
+        directory = ROOT / "segment_manifests/stage55"
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "tears_of_steel_measured.csv"
+            canonicalize_manifest(
+                directory / "raw/tears_of_steel_full.csv",
+                directory / "raw/tears_of_steel_full.provenance.json",
+                output,
+                source_preparation_provenance=(
+                    directory
+                    / "raw/tears_of_steel_1080p24_60s.provenance.json"
+                ),
+            )
+
+            self.assertEqual(
+                output.read_bytes(),
+                (directory / "tears_of_steel_measured.csv").read_bytes(),
+            )
+            self.assertEqual(
+                output.with_suffix(".provenance.json").read_bytes(),
+                (
+                    directory / "tears_of_steel_measured.provenance.json"
                 ).read_bytes(),
             )
 

@@ -264,12 +264,21 @@ def _audit_source_provenance(
 def _audit_source_preparation(
     provenance_path: Path,
     vvc_source: object,
+    vvc_configuration: object | None = None,
 ) -> dict[str, object]:
     raw = json.loads(provenance_path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
         raise ValueError("a proveniência da preparação deve ser um objeto JSON")
     if not isinstance(vvc_source, dict):
         raise ValueError("proveniência VVC sem resumo da fonte")
+
+    if isinstance(raw.get("source_sequence"), dict):
+        return _audit_png_source_preparation(
+            provenance_path,
+            raw,
+            vvc_source,
+            vvc_configuration,
+        )
 
     archive = raw.get("source_archive")
     clip = raw.get("clip")
@@ -320,6 +329,190 @@ def _audit_source_preparation(
         "source_archive": archive,
         "clip": clip,
         "ffmpeg": raw.get("ffmpeg"),
+        "pipeline": raw.get("pipeline"),
+        "runtime": raw.get("runtime"),
+    }
+
+
+def _audit_png_source_preparation(
+    provenance_path: Path,
+    raw: dict[str, object],
+    vvc_source: dict[str, object],
+    vvc_configuration: object,
+) -> dict[str, object]:
+    """Audita a sequência PNG fixada e sua transformação para YUV."""
+
+    sequence = raw.get("source_sequence")
+    clip = raw.get("clip")
+    normalization = raw.get("normalization")
+    configuration = raw.get("configuration")
+    if not isinstance(sequence, dict):
+        raise ValueError("proveniência PNG sem source_sequence")
+    if not isinstance(clip, dict):
+        raise ValueError("proveniência PNG sem clip")
+    if not isinstance(normalization, dict):
+        raise ValueError("proveniência PNG sem normalization")
+    if not isinstance(configuration, dict):
+        raise ValueError("proveniência PNG sem configuration")
+
+    configured_source = configuration.get("source")
+    configured_clip = configuration.get("clip")
+    if not isinstance(configured_source, dict) or not isinstance(
+        configured_clip,
+        dict,
+    ):
+        raise ValueError("configuração da preparação PNG incompleta")
+
+    expected_sequence_sha256 = configured_source.get(
+        "expected_sequence_sha256"
+    )
+    if not expected_sequence_sha256:
+        raise ValueError("sequência PNG não possui SHA-256 esperado fixado")
+    if sequence.get("sequence_sha256") != expected_sequence_sha256:
+        raise ValueError("hash da sequência PNG difere da configuração")
+    if sequence.get("expected_sequence_sha256") != expected_sequence_sha256:
+        raise ValueError("hash esperado da sequência PNG é inconsistente")
+    if sequence.get("integrity_pinned") is not True:
+        raise ValueError("integridade da sequência PNG não está fixada")
+
+    source_fields = (
+        "name",
+        "base_url",
+        "index_url",
+        "license_name",
+        "license_url",
+        "first_frame",
+        "frame_count",
+        "width",
+        "height",
+        "fps_num",
+        "fps_den",
+    )
+    for field in source_fields:
+        if sequence.get(field) != configured_source.get(field):
+            raise ValueError(
+                f"{field} da sequência PNG difere da configuração"
+            )
+
+    first_frame = int(configured_source["first_frame"])
+    frame_count = int(configured_source["frame_count"])
+    if int(sequence.get("last_frame", -1)) != first_frame + frame_count - 1:
+        raise ValueError("último quadro da sequência PNG é inconsistente")
+    if int(sequence.get("downloaded_frames", -1)) + int(
+        sequence.get("reused_frames", -1)
+    ) != frame_count:
+        raise ValueError("cobertura de download/cache da sequência PNG é inválida")
+
+    frames = sequence.get("frames")
+    if not isinstance(frames, list) or len(frames) != frame_count:
+        raise ValueError("registros por quadro da sequência PNG estão incompletos")
+    filename_pattern = str(configured_source.get("filename_pattern", ""))
+    aggregate = hashlib.sha256()
+    total_size_bytes = 0
+    for offset, record in enumerate(frames):
+        if not isinstance(record, dict):
+            raise ValueError("registro de quadro PNG inválido")
+        frame_number = first_frame + offset
+        try:
+            expected_filename = filename_pattern % frame_number
+        except (TypeError, ValueError) as exc:
+            raise ValueError("padrão de nome PNG inválido") from exc
+        if int(record.get("frame_number", -1)) != frame_number:
+            raise ValueError("ordem dos quadros PNG é inválida")
+        if record.get("filename") != expected_filename:
+            raise ValueError("nome de quadro PNG difere da configuração")
+        size_bytes = int(record.get("size_bytes", 0))
+        frame_sha256 = str(record.get("sha256", ""))
+        if size_bytes <= 0:
+            raise ValueError("quadro PNG possui tamanho inválido")
+        if len(frame_sha256) != 64:
+            raise ValueError("quadro PNG possui SHA-256 inválido")
+        try:
+            int(frame_sha256, 16)
+        except ValueError as exc:
+            raise ValueError("quadro PNG possui SHA-256 inválido") from exc
+
+        png = record.get("png")
+        if not isinstance(png, dict):
+            raise ValueError("registro PNG sem metadados IHDR")
+        expected_header = {
+            "width": int(configured_source["width"]),
+            "height": int(configured_source["height"]),
+            "bit_depth": int(configured_source["bit_depth"]),
+            "compression_method": 0,
+            "filter_method": 0,
+        }
+        if any(png.get(field) != value for field, value in expected_header.items()):
+            raise ValueError("metadados IHDR da sequência PNG são inválidos")
+
+        total_size_bytes += size_bytes
+        aggregate.update(
+            f"{expected_filename}\t{size_bytes}\t{frame_sha256}\n".encode(
+                "ascii"
+            )
+        )
+
+    if total_size_bytes != int(sequence.get("total_size_bytes", -1)):
+        raise ValueError("tamanho agregado da sequência PNG é inconsistente")
+    if aggregate.hexdigest() != expected_sequence_sha256:
+        raise ValueError("SHA-256 agregado dos registros PNG é inconsistente")
+
+    if clip.get("sha256") != vvc_source.get("sha256"):
+        raise ValueError("hash do YUV preparado difere da fonte do pipeline VVC")
+    if int(clip.get("size_bytes", -1)) != int(
+        vvc_source.get("size_bytes", -2)
+    ):
+        raise ValueError("tamanho do YUV preparado difere da fonte do pipeline VVC")
+    if int(clip.get("frame_count", -1)) != int(
+        vvc_source.get("available_frames", -2)
+    ):
+        raise ValueError("quadros do YUV preparado diferem da fonte do pipeline VVC")
+
+    for field in ("width", "height", "pixel_format"):
+        if clip.get(field) != configured_clip.get(field):
+            raise ValueError(
+                f"{field} do trecho PNG difere da configuração"
+            )
+    if int(clip.get("frame_count", -1)) != frame_count:
+        raise ValueError("quantidade de quadros do trecho PNG é inválida")
+
+    active_region = normalization.get("active_region")
+    expected_region = {
+        "x": int(configured_clip["pad_x"]),
+        "y": int(configured_clip["pad_y"]),
+        "width": int(configured_source["width"]),
+        "height": int(configured_source["height"]),
+    }
+    if normalization.get("policy") != "symmetric_letterbox":
+        raise ValueError("política de normalização PNG inválida")
+    if active_region != expected_region:
+        raise ValueError("região ativa da normalização PNG é inválida")
+    if not isinstance(vvc_configuration, dict):
+        raise ValueError("configuração VVC ausente na auditoria da fonte PNG")
+    decoder = vvc_configuration.get("decoder")
+    if not isinstance(decoder, dict):
+        raise ValueError("configuração VVC sem decoder")
+    if decoder.get("quality_region") != active_region:
+        raise ValueError(
+            "região de qualidade VVC difere da área ativa da fonte PNG"
+        )
+
+    sequence_summary = {
+        key: value for key, value in sequence.items() if key != "frames"
+    }
+    return {
+        "provenance_file": provenance_path.name,
+        "provenance_sha256": _sha256(provenance_path),
+        "source_preparation_schema_version": raw.get(
+            "preparation_schema_version"
+        ),
+        "generated_at_utc": raw.get("generated_at_utc"),
+        "configuration_sha256": raw.get("configuration_sha256"),
+        "source_sequence": sequence_summary,
+        "frame_records_validated": len(frames),
+        "quality_region_validated": True,
+        "normalization": normalization,
+        "clip": clip,
         "pipeline": raw.get("pipeline"),
         "runtime": raw.get("runtime"),
     }
@@ -406,7 +599,11 @@ def canonicalize_manifest(
         raw_manifest.sequence,
     )
     preparation_audit = (
-        _audit_source_preparation(preparation_path, raw_provenance.get("source"))
+        _audit_source_preparation(
+            preparation_path,
+            raw_provenance.get("source"),
+            raw_provenance.get("configuration"),
+        )
         if preparation_path is not None
         else None
     )

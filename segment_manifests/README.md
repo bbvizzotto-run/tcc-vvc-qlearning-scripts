@@ -101,13 +101,15 @@ e expõe ainda `representation_id` (`L0`, `L1`, ...).
 O processo é determinístico e produz proveniência própria com os hashes das
 duas entradas, mapeamento entre alvo e taxa medida, estatísticas de qualidade e
 resultado das validações. Consulte `stage55/README.md` para as execuções
-congeladas do Big Buck Bunny, do Elephants Dream e do Sita Sings the Blues. A
-política de PSNR exige crescimento
+congeladas do Big Buck Bunny, do Elephants Dream, do Sita Sings the Blues e do
+Tears of Steel. A política de PSNR exige crescimento
 estrito entre representações, exceto quando ambas atingem o teto lossless de
 100 dB usado pelo projeto; qualquer empate abaixo desse teto continua inválido.
 Quando `--source-preparation-provenance` é informado, a canonicalização também
 confirma que hash, tamanho e número de quadros do YUV preparado coincidem com a
-fonte efetivamente usada pelo pipeline VVC.
+fonte efetivamente usada pelo pipeline VVC. Para sequências PNG, ela exige o
+digest agregado fixado, recompõe esse digest a partir dos registros por quadro
+e audita a normalização espacial e a região ativa.
 
 Fontes distribuídas como Y4M comprimido com XZ podem ser normalizadas com
 `prepare_y4m_source.py`. A ferramenta valida o SHA-256 do arquivo completo e

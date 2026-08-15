@@ -213,7 +213,7 @@ python canonicalize_vvc_manifest.py \
 
 ## Quarto conteúdo: Tears of Steel
 
-A Etapa 5.5g-a prepara uma fonte de natureza distinta das três anteriores:
+A Etapa 5.5g prepara uma fonte de natureza distinta das três anteriores:
 *Tears of Steel* combina filmagem live-action e efeitos CGI. O Xiph publica
 17.620 quadros lossless a 1920×800 e permite acesso HTTP a cada PNG:
 
@@ -237,11 +237,21 @@ python prepare_png_source.py `
   --provenance "D:\vvc-stage55\sources\normalized\tears_of_steel_1080p24_60s.provenance.json"
 ```
 
-O `expected_sequence_sha256` começa nulo porque o Xiph não publica checksums
-por quadro para esse diretório. Antes da codificação definitiva, copie para a
-configuração o `source_sequence.sequence_sha256` da primeira proveniência e
-execute novamente com `--overwrite`. Isso transforma o conjunto ordenado dos
-1440 PNGs em uma entrada criptograficamente congelada.
+Como o Xiph não publica checksums por quadro para esse diretório, a primeira
+aquisição local calculou e a Etapa 5.5g-b congelou:
+
+- tamanho agregado dos PNGs: `2722906009` bytes;
+- SHA-256 da sequência ordenada:
+  `1fc3a3c62782b450294563125f7d5e400d4379c4dce9a00fc237ed37fda7f48a`;
+- SHA-256 do YUV normalizado:
+  `f6033935e2b1a8ef06d8f4d25a78b86147dcc6dfd3638c730a7ab18f59992844`;
+- SHA-256 da proveniência da primeira aquisição, ainda não fixada:
+  `3f17d1a09f4dbeffc5b2ae9bf2ef497dfce10a7873cac6b67c662ab751874b85`.
+
+O protocolo versionado agora rejeita qualquer cache cujo digest agregado
+divirja. Execute novamente o mesmo comando com `--overwrite`: os 1440 PNGs
+válidos serão reutilizados, o YUV será reconstruído e a nova proveniência deve
+registrar `integrity_pinned=true`.
 
 O encoder mantém a matriz dos três conteúdos anteriores. Como a entrada
 codificada precisa conservar 1920×1080, `decoder.quality_region` fixa

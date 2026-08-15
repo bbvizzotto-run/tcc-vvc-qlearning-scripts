@@ -17,6 +17,12 @@ from png_source_preparation import (
 )
 
 
+ROOT = Path(__file__).resolve().parents[1]
+TEARS_SEQUENCE_SHA256 = (
+    "1fc3a3c62782b450294563125f7d5e400d4379c4dce9a00fc237ed37fda7f48a"
+)
+
+
 def png_header(width=2, height=2, bit_depth=8, color_type=2):
     return (
         PNG_SIGNATURE
@@ -103,6 +109,20 @@ class PngSourcePreparationTest(unittest.TestCase):
 
         self.assertEqual((header["width"], header["height"]), (1920, 800))
         self.assertEqual(header["bit_depth"], 8)
+
+    def test_tears_configuration_pins_the_acquired_sequence(self):
+        config = load_png_source_config(
+            ROOT / "png_source_config.tears_of_steel.json"
+        )
+
+        self.assertEqual(config.source.first_frame, 2881)
+        self.assertEqual(config.source.last_frame, 4320)
+        self.assertEqual(config.source.frame_count, 1440)
+        self.assertEqual((config.source.width, config.source.height), (1920, 800))
+        self.assertEqual(
+            config.source.expected_sequence_sha256,
+            TEARS_SEQUENCE_SHA256,
+        )
 
     def test_prepares_sequence_and_writes_per_frame_provenance(self):
         with tempfile.TemporaryDirectory() as tmp:

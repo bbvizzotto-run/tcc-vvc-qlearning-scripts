@@ -15,7 +15,7 @@
     "fps_num": 24,
     "fps_den": 1,
     "bit_depth": 8,
-    "expected_sequence_sha256": null
+    "expected_sequence_sha256": "1fc3a3c62782b450294563125f7d5e400d4379c4dce9a00fc237ed37fda7f48a"
   },
   "clip": {
     "output_yuv": "artifacts/stage55/sources/tears_of_steel_1080p24_60s.yuv",

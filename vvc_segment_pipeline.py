@@ -146,14 +146,35 @@ class EncoderConfig:
 
 
 @dataclass(frozen=True)
+class QualityRegionConfig:
+    x: int
+    y: int
+    width: int
+    height: int
+
+    def __post_init__(self) -> None:
+        if self.x < 0 or self.y < 0:
+            raise ValueError("decoder.quality_region x e y não podem ser negativos")
+        if self.width <= 0 or self.height <= 0:
+            raise ValueError(
+                "decoder.quality_region width e height devem ser positivos"
+            )
+
+
+@dataclass(frozen=True)
 class DecoderConfig:
     executable: str = "vvdecapp"
     compute_psnr_y: bool = True
     keep_reconstructions: bool = False
+    quality_region: QualityRegionConfig | None = None
 
     def __post_init__(self) -> None:
         if self.compute_psnr_y and not self.executable.strip():
             raise ValueError("decoder.executable é obrigatório para calcular PSNR-Y")
+        if not self.compute_psnr_y and self.quality_region is not None:
+            raise ValueError(
+                "decoder.quality_region exige decoder.compute_psnr_y=true"
+            )
 
 
 @dataclass(frozen=True)
@@ -191,6 +212,14 @@ class PipelineConfig:
             raise ValueError("output_dir e manifest_path não podem ser iguais")
         if self.manifest_path.suffix.lower() != ".csv":
             raise ValueError("manifest_path deve usar a extensão .csv")
+        quality_region = self.decoder.quality_region
+        if quality_region is not None and (
+            quality_region.x + quality_region.width > self.source.width
+            or quality_region.y + quality_region.height > self.source.height
+        ):
+            raise ValueError(
+                "decoder.quality_region deve estar contida no quadro da fonte"
+            )
         self.source.frames_per_segment
 
 
@@ -221,6 +250,7 @@ def load_pipeline_config(path: str | Path) -> PipelineConfig:
     source_raw = raw["source"]
     encoder_raw = raw.get("encoder", {})
     decoder_raw = raw.get("decoder", {})
+    quality_region_raw = decoder_raw.get("quality_region")
 
     source = SourceConfig(
         name=str(source_raw["name"]),
@@ -259,6 +289,16 @@ def load_pipeline_config(path: str | Path) -> PipelineConfig:
         compute_psnr_y=bool(decoder_raw.get("compute_psnr_y", True)),
         keep_reconstructions=bool(
             decoder_raw.get("keep_reconstructions", False)
+        ),
+        quality_region=(
+            QualityRegionConfig(
+                x=int(quality_region_raw["x"]),
+                y=int(quality_region_raw["y"]),
+                width=int(quality_region_raw["width"]),
+                height=int(quality_region_raw["height"]),
+            )
+            if quality_region_raw is not None
+            else None
         ),
     )
     return PipelineConfig(
@@ -694,6 +734,16 @@ def execute_pipeline(
                 job.frames,
                 original_start_frame=job.frame_skip,
                 bit_depth=config.source.bit_depth,
+                quality_region=(
+                    (
+                        config.decoder.quality_region.x,
+                        config.decoder.quality_region.y,
+                        config.decoder.quality_region.width,
+                        config.decoder.quality_region.height,
+                    )
+                    if config.decoder.quality_region is not None
+                    else None
+                ),
             )
             if not config.decoder.keep_reconstructions:
                 reconstruction.unlink()

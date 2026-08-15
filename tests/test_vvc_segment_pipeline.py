@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from segment_manifest import load_segment_manifest
+from qoe_metrics import calculate_psnr_yuv_segment
 from vvc_segment_pipeline import (
     EncoderConfig,
     build_dry_run_plan,
@@ -143,6 +144,49 @@ class VvcSegmentPipelineTest(unittest.TestCase):
         self.assertEqual(config.bitrates_kbps, (1000, 2000, 4000, 8000))
         self.assertEqual(len(build_jobs(config)), 240)
         self.assertTrue(config.encoder.poc0idr)
+
+    def test_tears_configuration_crops_psnr_to_the_active_picture(self):
+        config = load_pipeline_config(
+            ROOT / "vvc_pipeline_config.tears_of_steel.example.json"
+        )
+
+        self.assertEqual(config.source.name, "tears_of_steel")
+        self.assertEqual((config.source.width, config.source.height), (1920, 1080))
+        self.assertEqual(config.source.segment_count, 60)
+        self.assertEqual(config.bitrates_kbps, (1000, 2000, 4000, 8000))
+        self.assertEqual(len(build_jobs(config)), 240)
+        region = config.decoder.quality_region
+        self.assertIsNotNone(region)
+        self.assertEqual(
+            (region.x, region.y, region.width, region.height),
+            (0, 140, 1920, 800),
+        )
+
+    def test_quality_region_excludes_letterbox_from_psnr(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            original = root / "original.yuv"
+            reconstructed = root / "reconstructed.yuv"
+            original_y = bytes([0] * 16)
+            reconstructed_y = bytes([255] * 4 + [0] * 8 + [255] * 4)
+            chroma = bytes([128] * 8)
+            original.write_bytes(original_y + chroma)
+            reconstructed.write_bytes(reconstructed_y + chroma)
+
+            full_psnr = calculate_psnr_yuv_segment(
+                original, reconstructed, 4, 4, 1
+            )
+            active_psnr = calculate_psnr_yuv_segment(
+                original,
+                reconstructed,
+                4,
+                4,
+                1,
+                quality_region=(0, 1, 4, 2),
+            )
+
+        self.assertLess(full_psnr, 100.0)
+        self.assertEqual(active_psnr, 100.0)
 
     def test_dry_run_does_not_require_source_or_tools(self):
         with tempfile.TemporaryDirectory() as tmp:

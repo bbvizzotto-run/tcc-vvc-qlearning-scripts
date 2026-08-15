@@ -1,7 +1,8 @@
 # Etapa 5.5 — conteúdo VVC controlado
 
 Este diretório registra os três primeiros conteúdos da avaliação
-multi-conteúdo. Os bitstreams `.266` e as fontes de vídeo permanecem fora do
+multi-conteúdo e prepara o quarto. Os bitstreams `.266` e as fontes de vídeo
+permanecem fora do
 Git; tamanhos, PSNR-Y, hashes, comandos e versões das ferramentas são
 versionados para auditoria.
 
@@ -209,3 +210,40 @@ python canonicalize_vvc_manifest.py \
   --provenance segment_manifests/stage55/sita_sings_the_blues_measured.provenance.json \
   --overwrite
 ```
+
+## Quarto conteúdo: Tears of Steel
+
+A Etapa 5.5g-a prepara uma fonte de natureza distinta das três anteriores:
+*Tears of Steel* combina filmagem live-action e efeitos CGI. O Xiph publica
+17.620 quadros lossless a 1920×800 e permite acesso HTTP a cada PNG:
+
+- diretório: <https://media.xiph.org/tearsofsteel/tearsofsteel-1080bis-png/>;
+- atribuição: `(CC) Blender Foundation | mango.blender.org`;
+- licença: Creative Commons Attribution 3.0;
+- recorte: arquivos `02881.png`–`04320.png`, correspondentes a 120–180 s;
+- saída: 1440 quadros, 1920×1080, 24 fps, YUV 4:2:0 de 8 bits;
+- transformação espacial: padding preto simétrico de 140 linhas, sem escala,
+  corte ou conversão de frequência.
+
+Não é necessário baixar o Y4M 4K de 66 GB nem a sequência PNG completa. O
+preparador obtém somente os 1440 quadros selecionados, retoma arquivos válidos
+do cache, verifica o IHDR e registra tamanho e SHA-256 de cada PNG. No Windows:
+
+```powershell
+python prepare_png_source.py `
+  --config png_source_config.tears_of_steel.json `
+  --cache-dir "D:\vvc-stage55\sources\originals\tears_of_steel_1080bis_png" `
+  --output "D:\vvc-stage55\sources\normalized\tears_of_steel_1080p24_60s.yuv" `
+  --provenance "D:\vvc-stage55\sources\normalized\tears_of_steel_1080p24_60s.provenance.json"
+```
+
+O `expected_sequence_sha256` começa nulo porque o Xiph não publica checksums
+por quadro para esse diretório. Antes da codificação definitiva, copie para a
+configuração o `source_sequence.sequence_sha256` da primeira proveniência e
+execute novamente com `--overwrite`. Isso transforma o conjunto ordenado dos
+1440 PNGs em uma entrada criptograficamente congelada.
+
+O encoder mantém a matriz dos três conteúdos anteriores. Como a entrada
+codificada precisa conservar 1920×1080, `decoder.quality_region` fixa
+`(x=0, y=140, width=1920, height=800)`: o PSNR-Y ignora somente as barras
+adicionadas pelo protocolo e permanece comparável na área visual efetiva.

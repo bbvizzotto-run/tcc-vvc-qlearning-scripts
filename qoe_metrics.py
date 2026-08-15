@@ -10,12 +10,15 @@ def calculate_psnr_yuv_segment(
     num_frames,
     original_start_frame=0,
     bit_depth=8,
+    quality_region=None,
 ):
     """Calcula PSNR-Y médio para um recorte de uma fonte YUV 4:2:0.
 
     A reconstrução deve começar no primeiro quadro do segmento, enquanto
     ``original_start_frame`` aponta para o mesmo recorte na fonte completa.
-    Quadros idênticos mantêm a convenção histórica do projeto de 100 dB.
+    ``quality_region`` pode limitar a medição a ``(x, y, width, height)`` no
+    plano Y. Quadros idênticos mantêm a convenção histórica do projeto de
+    100 dB.
     """
 
     if width <= 0 or height <= 0 or width % 2 or height % 2:
@@ -26,6 +29,20 @@ def calculate_psnr_yuv_segment(
         raise ValueError("original_start_frame não pode ser negativo")
     if bit_depth not in (8, 10):
         raise ValueError("bit_depth deve ser 8 ou 10")
+    if quality_region is None:
+        crop_x, crop_y, crop_width, crop_height = 0, 0, width, height
+    else:
+        if len(quality_region) != 4:
+            raise ValueError("quality_region deve conter x, y, width e height")
+        crop_x, crop_y, crop_width, crop_height = quality_region
+        if any(not isinstance(value, int) for value in quality_region):
+            raise ValueError("quality_region deve conter somente inteiros")
+        if crop_x < 0 or crop_y < 0:
+            raise ValueError("x e y de quality_region não podem ser negativos")
+        if crop_width <= 0 or crop_height <= 0:
+            raise ValueError("width e height de quality_region devem ser positivos")
+        if crop_x + crop_width > width or crop_y + crop_height > height:
+            raise ValueError("quality_region deve estar contida no quadro")
 
     bytes_per_sample = 1 if bit_depth == 8 else 2
     y_size = width * height * bytes_per_sample
@@ -54,13 +71,19 @@ def calculate_psnr_yuv_segment(
             original.seek(frame_size - y_size, os.SEEK_CUR)
             reconstructed.seek(frame_size - y_size, os.SEEK_CUR)
 
-            y_original = np.frombuffer(y_original_bytes, dtype=dtype).astype(
-                np.float64
-            )
+            y_original = np.frombuffer(y_original_bytes, dtype=dtype).reshape(
+                height,
+                width,
+            )[crop_y : crop_y + crop_height, crop_x : crop_x + crop_width]
             y_reconstructed = np.frombuffer(
                 y_reconstructed_bytes,
                 dtype=dtype,
-            ).astype(np.float64)
+            ).reshape(height, width)[
+                crop_y : crop_y + crop_height,
+                crop_x : crop_x + crop_width,
+            ]
+            y_original = y_original.astype(np.float64)
+            y_reconstructed = y_reconstructed.astype(np.float64)
             mse = np.mean((y_original - y_reconstructed) ** 2)
             psnr_values.append(
                 100.0

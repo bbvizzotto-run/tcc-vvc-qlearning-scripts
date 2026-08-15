@@ -1,0 +1,110 @@
+{
+  "source_preparation_schema_version": 1,
+  "generated_at_utc": "2026-08-14T19:20:43.524438+00:00",
+  "configuration_file": "D:\\tcc-vvc-qlearning-scripts\\y4m_source_config.sita_sings_the_blues.json",
+  "configuration_sha256": "5f10b22ee24180f89b6884c1fcad47a85aafe0c4eabfb5a03dcac29c30e41cc7",
+  "configuration": {
+    "schema_version": 1,
+    "source": {
+      "name": "sita_sings_the_blues",
+      "url": "https://media.xiph.org/video/derf/y4m/sita_sings_the_blues_1080p24.y4m.xz",
+      "license_name": "CC0 1.0 Universal (visual content)",
+      "license_url": "https://www.sitasingstheblues.com/license.html",
+      "input_xz": "D:\\vvc-stage55\\sources\\originals\\sita_sings_the_blues_1080p24.y4m.xz",
+      "expected_sha256": "e4e8945f967ad2451d6fb663e4ef93008fea75460e6c5c1033e255a526710902"
+    },
+    "clip": {
+      "output_yuv": "D:\\vvc-stage55\\sources\\normalized\\sita_sings_the_blues_1080p24_60s.yuv",
+      "provenance_path": "D:\\vvc-stage55\\sources\\normalized\\sita_sings_the_blues_1080p24_60s.provenance.json",
+      "width": 1920,
+      "height": 1080,
+      "fps_num": 24,
+      "fps_den": 1,
+      "start_frame": 2880,
+      "frame_count": 1440,
+      "source_fps_num": 24000,
+      "source_fps_den": 1001,
+      "frame_rate_policy": "reinterpret",
+      "pixel_format": "yuv420p"
+    },
+    "ffmpeg_executable": "ffmpeg"
+  },
+  "source_archive": {
+    "path": "D:\\vvc-stage55\\sources\\originals\\sita_sings_the_blues_1080p24.y4m.xz",
+    "url": "https://media.xiph.org/video/derf/y4m/sita_sings_the_blues_1080p24.y4m.xz",
+    "license_name": "CC0 1.0 Universal (visual content)",
+    "license_url": "https://www.sitasingstheblues.com/license.html",
+    "size_bytes": 33431435956,
+    "sha256": "e4e8945f967ad2451d6fb663e4ef93008fea75460e6c5c1033e255a526710902",
+    "y4m_header": {
+      "raw": "YUV4MPEG2 C420jpeg W1920 H1080 F24000:1001 Ip A1:1",
+      "width": 1920,
+      "height": 1080,
+      "fps_num": 24000,
+      "fps_den": 1001,
+      "interlace": "p",
+      "chroma": "420jpeg"
+    }
+  },
+  "clip": {
+    "path": "D:\\vvc-stage55\\sources\\normalized\\sita_sings_the_blues_1080p24_60s.yuv",
+    "start_frame": 2880,
+    "end_frame_exclusive": 4320,
+    "frame_count": 1440,
+    "duration_s": 60.0,
+    "source_duration_s": 60.06,
+    "source_start_time_s": 120.12,
+    "source_end_time_s": 180.18,
+    "size_bytes": 4478976000,
+    "sha256": "c37f429197f14e63524edc7c2625b9df3be5611e89c7b0e5a9e52dc901d68a91",
+    "pixel_format": "yuv420p",
+    "frame_rate": {
+      "source_num": 24000,
+      "source_den": 1001,
+      "normalized_num": 24,
+      "normalized_den": 1,
+      "policy": "reinterpret",
+      "playback_speed_factor": 1.001,
+      "frame_duplication": false,
+      "frame_dropping": false
+    }
+  },
+  "ffmpeg": {
+    "path": "C:\\Users\\bbviz\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-7.1-full_build\\bin\\ffmpeg.EXE",
+    "version": "ffmpeg version 7.1-full_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers"
+  },
+  "ffmpeg_command": [
+    "C:\\Users\\bbviz\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-7.1-full_build\\bin\\ffmpeg.EXE",
+    "-hide_banner",
+    "-loglevel",
+    "warning",
+    "-y",
+    "-f",
+    "yuv4mpegpipe",
+    "-i",
+    "pipe:0",
+    "-map",
+    "0:v:0",
+    "-vf",
+    "trim=start_frame=2880:end_frame=4320,setpts=PTS-STARTPTS",
+    "-frames:v",
+    "1440",
+    "-pix_fmt",
+    "yuv420p",
+    "-fps_mode",
+    "passthrough",
+    "-f",
+    "rawvideo",
+    "D:\\vvc-stage55\\sources\\normalized\\sita_sings_the_blues_1080p24_60s.yuv.tmp"
+  ],
+  "pipeline": {
+    "module": "D:\\tcc-vvc-qlearning-scripts\\y4m_source_preparation.py",
+    "module_sha256": "509c44d4995f62995fa127639abcdd578bf1f0c613712228c1563b828c5c2bee",
+    "git_commit": "8f9a4396217bef8ffbc428a23592c664c43b644d",
+    "git_dirty": false
+  },
+  "runtime": {
+    "python": "3.9.13",
+    "platform": "Windows-10-10.0.26200-SP0"
+  }
+}

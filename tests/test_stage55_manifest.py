@@ -24,6 +24,9 @@ MANIFEST_PATHS = {
     "elephants_dream": (
         ROOT / "segment_manifests/stage55/elephants_dream_measured.csv"
     ),
+    "sita_sings_the_blues": (
+        ROOT / "segment_manifests/stage55/sita_sings_the_blues_measured.csv"
+    ),
 }
 
 
@@ -39,6 +42,7 @@ class Stage55ManifestIntegrationTest(unittest.TestCase):
         expected = {
             "big_buck_bunny": (1019, 1692, 2610, 3632),
             "elephants_dream": (1064, 1847, 3097, 5182),
+            "sita_sings_the_blues": (973, 1801, 3219, 5583),
         }
         for name, ladder in expected.items():
             with self.subTest(sequence=name):
@@ -98,6 +102,67 @@ class Stage55ManifestIntegrationTest(unittest.TestCase):
                 (
                     directory
                     / "elephants_dream_measured.provenance.json"
+                ).read_bytes(),
+            )
+
+    def test_sita_records_the_lossless_and_frame_rate_normalization(self):
+        provenance_path = (
+            ROOT
+            / "segment_manifests/stage55/"
+            "sita_sings_the_blues_measured.provenance.json"
+        )
+        provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(provenance["canonicalization_schema_version"], 2)
+        self.assertEqual(provenance["validation"]["lossless_psnr_ties"], 3)
+        self.assertFalse(
+            provenance["source_execution_audit"]["pipeline"]["git_dirty"]
+        )
+        self.assertEqual(
+            provenance["source_preparation_audit"]["source_archive"]["sha256"],
+            "e4e8945f967ad2451d6fb663e4ef93008fea75460e6c5c1033e255a526710902",
+        )
+        self.assertEqual(
+            provenance["source_preparation_audit"]["clip"]["sha256"],
+            "c37f429197f14e63524edc7c2625b9df3be5611e89c7b0e5a9e52dc901d68a91",
+        )
+        self.assertEqual(
+            provenance["source_preparation_audit"]["clip"]["frame_rate"],
+            {
+                "source_num": 24000,
+                "source_den": 1001,
+                "normalized_num": 24,
+                "normalized_den": 1,
+                "policy": "reinterpret",
+                "playback_speed_factor": 1.001,
+                "frame_duplication": False,
+                "frame_dropping": False,
+            },
+        )
+
+    def test_sita_derivation_is_reproducible(self):
+        directory = ROOT / "segment_manifests/stage55"
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "sita_sings_the_blues_measured.csv"
+            canonicalize_manifest(
+                directory / "raw/sita_sings_the_blues_full.csv",
+                directory / "raw/sita_sings_the_blues_full.provenance.json",
+                output,
+                source_preparation_provenance=(
+                    directory
+                    / "raw/sita_sings_the_blues_1080p24_60s.provenance.json"
+                ),
+            )
+
+            self.assertEqual(
+                output.read_bytes(),
+                (directory / "sita_sings_the_blues_measured.csv").read_bytes(),
+            )
+            self.assertEqual(
+                output.with_suffix(".provenance.json").read_bytes(),
+                (
+                    directory
+                    / "sita_sings_the_blues_measured.provenance.json"
                 ).read_bytes(),
             )
 

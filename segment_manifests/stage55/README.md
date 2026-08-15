@@ -1,10 +1,9 @@
 # Etapa 5.5 — conteúdo VVC controlado
 
-Este diretório registra os três primeiros conteúdos da avaliação
-multi-conteúdo e prepara o quarto. Os bitstreams `.266` e as fontes de vídeo
-permanecem fora do
-Git; tamanhos, PSNR-Y, hashes, comandos e versões das ferramentas são
-versionados para auditoria.
+Este diretório registra os quatro conteúdos da avaliação multi-conteúdo. Os
+bitstreams `.266` e as fontes de vídeo permanecem fora do Git; tamanhos,
+PSNR-Y, hashes, comandos e versões das ferramentas são versionados para
+auditoria.
 
 ## Big Buck Bunny
 
@@ -245,15 +244,45 @@ aquisição local calculou e a Etapa 5.5g-b congelou:
   `1fc3a3c62782b450294563125f7d5e400d4379c4dce9a00fc237ed37fda7f48a`;
 - SHA-256 do YUV normalizado:
   `f6033935e2b1a8ef06d8f4d25a78b86147dcc6dfd3638c730a7ab18f59992844`;
-- SHA-256 da proveniência da primeira aquisição, ainda não fixada:
-  `3f17d1a09f4dbeffc5b2ae9bf2ef497dfce10a7873cac6b67c662ab751874b85`.
+- SHA-256 da proveniência final com `integrity_pinned=true`:
+  `1f3a1178b7f78413d68a564d2f47c0dabbcb5a3bfeed9e6152fda77d955f027e`.
 
-O protocolo versionado agora rejeita qualquer cache cujo digest agregado
-divirja. Execute novamente o mesmo comando com `--overwrite`: os 1440 PNGs
-válidos serão reutilizados, o YUV será reconstruído e a nova proveniência deve
-registrar `integrity_pinned=true`.
+O protocolo versionado rejeita qualquer cache cujo digest agregado divirja. A
+segunda preparação reutilizou os 1440 PNGs, recalculou o digest ordenado e
+registrou a fonte fixada em
+`raw/tears_of_steel_1080p24_60s.provenance.json`.
 
 O encoder mantém a matriz dos três conteúdos anteriores. Como a entrada
 codificada precisa conservar 1920×1080, `decoder.quality_region` fixa
 `(x=0, y=140, width=1920, height=800)`: o PSNR-Y ignora somente as barras
 adicionadas pelo protocolo e permanece comparável na área visual efetiva.
+
+A codificação completa foi executada sobre o checkout limpo `aea0f80...`, com
+VVenC 1.14.0, VVdeC 3.2.0 e os mesmos quatro alvos dos conteúdos anteriores.
+O manifesto bruto possui SHA-256
+`c883c0c809078bc4441de0cb5ba10e53e7a2a327e7bb68cf7a9689c920eead26`;
+sua proveniência possui SHA-256
+`b72c816a2128ae14e021a4794eb94aea1ac23d58a0497f27ee5c2013f3eb5f33`.
+Os 240 comandos foram auditados, sem reutilização de bitstreams e sem violação
+de monotonicidade de tamanho ou PSNR-Y.
+
+| Nível | Alvo VVenC (kbps) | Taxa média medida (kbps) | Rótulo operacional (kbps) | PSNR-Y médio na área ativa (dB) |
+| :--- | ---: | ---: | ---: | ---: |
+| L0 | 1000 | 893,967733 | 894 | 42,895118 |
+| L1 | 2000 | 1487,107867 | 1487 | 44,327531 |
+| L2 | 4000 | 2326,903067 | 2327 | 45,214055 |
+| L3 | 8000 | 3593,219600 | 3593 | 45,910313 |
+
+A canonicalização também recompõe o SHA-256 agregado a partir dos nomes,
+tamanhos e hashes dos 1440 registros PNG, confirma o vínculo com o YUV usado
+pelo pipeline e registra a região ativa. Para reproduzi-la:
+
+```bash
+python canonicalize_vvc_manifest.py \
+  --input segment_manifests/stage55/raw/tears_of_steel_full.csv \
+  --source-provenance segment_manifests/stage55/raw/tears_of_steel_full.provenance.json \
+  --source-preparation-provenance segment_manifests/stage55/raw/tears_of_steel_1080p24_60s.provenance.json \
+  --output segment_manifests/stage55/tears_of_steel_measured.csv \
+  --provenance segment_manifests/stage55/tears_of_steel_measured.provenance.json \
+  --overwrite
+```

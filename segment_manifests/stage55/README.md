@@ -1,9 +1,9 @@
 # Etapa 5.5 — conteúdo VVC controlado
 
-Este diretório registra os dois primeiros resultados e a preparação do terceiro
-conteúdo da avaliação multi-conteúdo. Os bitstreams `.266` e as fontes de vídeo
-permanecem fora do Git; tamanhos, PSNR-Y, hashes, comandos e versões das
-ferramentas são versionados para auditoria.
+Este diretório registra os três primeiros conteúdos da avaliação
+multi-conteúdo. Os bitstreams `.266` e as fontes de vídeo permanecem fora do
+Git; tamanhos, PSNR-Y, hashes, comandos e versões das ferramentas são
+versionados para auditoria.
 
 ## Big Buck Bunny
 
@@ -171,7 +171,41 @@ python prepare_y4m_source.py `
   --provenance "D:\vvc-stage55\sources\normalized\sita_sings_the_blues_1080p24_60s.provenance.json"
 ```
 
-O SHA-256 do YUV normalizado e a proveniência efetiva serão incorporados
-somente após a execução local bem-sucedida. A matriz VVenC permanece idêntica
-aos conteúdos anteriores e está declarada em
-`vvc_pipeline_config.sita_sings_the_blues.example.json`.
+O trecho YUV normalizado produzido possui SHA-256
+`c37f429197f14e63524edc7c2625b9df3be5611e89c7b0e5a9e52dc901d68a91`.
+
+A codificação usa o mesmo protocolo dos conteúdos anteriores: VVenC 1.14.0,
+VVdeC 3.2.0, preset `medium`, duas passagens, QPA, `idr_no_radl`, `POC0IDR=1`,
+oito threads, quatro alvos e 60 segmentos independentes de 1 s. A proveniência
+bruta registra o merge `8f9a439...` e `git_dirty=false`.
+
+`raw/sita_sings_the_blues_1080p24_60s.provenance.json` ancora a transformação
+do XZ no YUV normalizado. `raw/sita_sings_the_blues_full.csv` e sua proveniência
+preservam a evidência original da codificação. O manifesto canônico separa os
+alvos dos rótulos operacionais:
+
+| Nível | Alvo VVenC (kbps) | Taxa média medida (kbps) | Rótulo operacional (kbps) | PSNR-Y médio (dB) |
+| :--- | ---: | ---: | ---: | ---: |
+| L0 | 1000 | 973,430000 | 973 | 41,188243 |
+| L1 | 2000 | 1800,619600 | 1801 | 43,208977 |
+| L2 | 4000 | 3218,908400 | 3219 | 45,212999 |
+| L3 | 8000 | 5583,115467 | 5583 | 47,367555 |
+
+No segmento 4, todas as representações atingiram `100 dB`, convenção do
+projeto para MSE zero. Os payloads continuam estritamente crescentes, de 1536 a
+1590 bytes, e geram três empates adjacentes legítimos no PSNR. Isso explica as
+taxas mínimas de 12,288–12,720 kbps sem indicar artefato ausente ou falha de
+codificação. A canonicalização registra `lossless_psnr_ties=3` e mantém o
+segmento para preservar o recorte contínuo congelado.
+
+Para reproduzir a derivação:
+
+```bash
+python canonicalize_vvc_manifest.py \
+  --input segment_manifests/stage55/raw/sita_sings_the_blues_full.csv \
+  --source-provenance segment_manifests/stage55/raw/sita_sings_the_blues_full.provenance.json \
+  --source-preparation-provenance segment_manifests/stage55/raw/sita_sings_the_blues_1080p24_60s.provenance.json \
+  --output segment_manifests/stage55/sita_sings_the_blues_measured.csv \
+  --provenance segment_manifests/stage55/sita_sings_the_blues_measured.provenance.json \
+  --overwrite
+```

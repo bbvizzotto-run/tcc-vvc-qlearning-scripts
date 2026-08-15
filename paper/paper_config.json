@@ -1,0 +1,24 @@
+{
+  "paper_title": "QoE-Aware Adaptive Streaming under Content-Dependent VVC Segment Variability: Model-Based Control versus Tabular Reinforcement Learning",
+  "short_title": "QoE-Aware VVC Adaptive Streaming under Segment Variability",
+  "frozen_results_commit": "efc5aa3be155e5533cd16f17fc76354a73ae46c7",
+  "results_directory": "results/stage56_multicontent_final",
+  "output_directory": "paper/generated",
+  "segment_manifests": {
+    "big_buck_bunny": "segment_manifests/stage55/big_buck_bunny_measured.csv",
+    "elephants_dream": "segment_manifests/stage55/elephants_dream_measured.csv",
+    "sita_sings_the_blues": "segment_manifests/stage55/sita_sings_the_blues_measured.csv",
+    "tears_of_steel": "segment_manifests/stage55/tears_of_steel_measured.csv"
+  },
+  "frozen_inputs_sha256": {
+    "results/stage56_multicontent_final/manifest.json": "93622ffed20218d953e43589f6acae0d8ba8e039edd428cc0fb5a60cd91f001a",
+    "results/stage56_multicontent_final/aggregate.csv": "377d1430c060011603ecf20e53a110e1a671fd34b7cc6f76624142249a296d75",
+    "results/stage56_multicontent_final/paired_differences.csv": "9b7fd320695ef247f847f7eb2eb1cb4a5e3b166bf016fe4d477b517eff80b2d2",
+    "results/stage56_multicontent_final/raw_runs.csv": "2235a33bbfb1df9379c434947afbba97bd0cbce15f54735e107a7f7cd0d34690",
+    "results/stage56_multicontent_final/training_summary.csv": "9c81a98219197e0cccf3ed90998e117ed39ad04b966616350c3617f61991c64c",
+    "segment_manifests/stage55/big_buck_bunny_measured.csv": "f89cebc38eaaaa3f2b16b50664c79b8dd366147680cc4238d97b217143bb633a",
+    "segment_manifests/stage55/elephants_dream_measured.csv": "9608da2b98c98a00399b05782fe34b3877aec6f154c436fdbdc44c14911a6e49",
+    "segment_manifests/stage55/sita_sings_the_blues_measured.csv": "3cfed194b8554928b9e9eb4d133ab4d2f83e846ab26f80b93de0b1a2fc695cae",
+    "segment_manifests/stage55/tears_of_steel_measured.csv": "ce2f9591bb2a553c7742ac84d98eaf56878f71b0238c90742e42712524d258a3"
+  }
+}

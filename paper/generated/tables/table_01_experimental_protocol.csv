@@ -1,0 +1,11 @@
+Item,Value
+VVC contents,4
+Segments per content,60
+Representations per content,4
+Independent VVC bitstreams,960
+Training seeds,10
+Evaluation traces,3
+ABR controllers,5
+Final evaluations,600
+Statistical unit,training seed
+Confidence interval,"Two-sided Student t, 95%"

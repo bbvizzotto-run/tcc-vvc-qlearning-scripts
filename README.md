@@ -35,6 +35,7 @@ O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 impl
 | Primeiro conteúdo VVC controlado e escada medida | Implementado (Etapa 5.5b) |
 | Segundo conteúdo VVC controlado e escada medida | Implementado (Etapa 5.5d) |
 | Terceiro conteúdo VVC controlado e escada medida | Implementado (Etapa 5.5f) |
+| Preparação do quarto conteúdo VVC controlado | Implementado (Etapa 5.5g-a) |
 | Dataset VVC real e resultados completos | Pendente de execução com as fontes YUV |
 | Rede `tc/netem` | Pendente |
 
@@ -195,6 +196,16 @@ protocolo congelado produziu a escada medida `[973, 1801, 3219, 5583]` kbps.
 Manifestos brutos e canônicos, proveniências e o caso lossless do segmento 4
 estão documentados em `segment_manifests/stage55/`. Vídeo, YUV e bitstreams
 permanecem fora do Git.
+
+Para o quarto conteúdo, *Tears of Steel*, `prepare_png_source.py` baixa somente
+os quadros lossless 02881–04320 publicados individualmente pelo Xiph, mantém um
+cache retomável e registra SHA-256 de cada PNG e da sequência ordenada. Os
+quadros 1920×800 são centralizados em 1920×1080 com letterbox simétrico, sem
+escala nem descarte. A configuração VVC mede PSNR-Y somente na região ativa
+1920×800; assim, as faixas pretas preservam a geometria do protocolo sem
+inflar a métrica de qualidade. A primeira execução ainda deve congelar no JSON
+o `expected_sequence_sha256` produzido pela proveniência antes da codificação
+definitiva.
 
 ### Importação de pacotes DVB-DASH VVC
 

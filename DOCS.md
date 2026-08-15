@@ -96,7 +96,7 @@ Cada comando fixa explicitamente resolução, taxa de quadros racional, formato 
 
 Essa escolha inclui em cada payload o custo de acesso aleatório, parameter sets e demais cabeçalhos do bitstream bruto. Ela representa um conjunto controlado de objetos VVC independentes, não um empacotamento DASH/CMAF. A vertente DVB descrita adiante mede separadamente o payload ISO-BMFF transferível.
 
-Quando `compute_psnr_y` está ativo, o VVdeC reconstrói cada bitstream. O cálculo de PSNR-Y compara essa reconstrução com os quadros correspondentes na fonte completa, usando `start_frame + segment × frames_per_segment`. Quadros idênticos recebem 100 dB para manter a convenção histórica do projeto. As reconstruções podem ser removidas depois da medição; os bitstreams, logs, hashes e comandos permanecem rastreáveis.
+Quando `compute_psnr_y` está ativo, o VVdeC reconstrói cada bitstream. O cálculo de PSNR-Y compara essa reconstrução com os quadros correspondentes na fonte completa, usando `start_frame + segment × frames_per_segment`. A opção `decoder.quality_region` restringe a medição a uma região retangular do plano Y; ela é usada no Tears of Steel para excluir somente o letterbox e medir a área ativa 1920×800. Quadros idênticos recebem 100 dB para manter a convenção histórica do projeto. As reconstruções podem ser removidas depois da medição; os bitstreams, logs, hashes e comandos permanecem rastreáveis.
 
 O pipeline produz dois documentos:
 

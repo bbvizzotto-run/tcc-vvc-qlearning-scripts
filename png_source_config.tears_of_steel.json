@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "source": {
+    "name": "tears_of_steel",
+    "base_url": "https://media.xiph.org/tearsofsteel/tearsofsteel-1080bis-png/",
+    "index_url": "https://media.xiph.org/tearsofsteel/tearsofsteel-1080bis-png/",
+    "license_name": "Creative Commons Attribution 3.0",
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "cache_dir": "datasets/xiph/tears_of_steel_1080bis_png",
+    "filename_pattern": "%05d.png",
+    "first_frame": 2881,
+    "frame_count": 1440,
+    "width": 1920,
+    "height": 800,
+    "fps_num": 24,
+    "fps_den": 1,
+    "bit_depth": 8,
+    "expected_sequence_sha256": null
+  },
+  "clip": {
+    "output_yuv": "artifacts/stage55/sources/tears_of_steel_1080p24_60s.yuv",
+    "provenance_path": "artifacts/stage55/sources/tears_of_steel_1080p24_60s.provenance.json",
+    "width": 1920,
+    "height": 1080,
+    "pad_x": 0,
+    "pad_y": 140,
+    "pixel_format": "yuv420p"
+  },
+  "download": {
+    "workers": 4,
+    "timeout_s": 60,
+    "retries": 3
+  },
+  "ffmpeg_executable": "ffmpeg"
+}

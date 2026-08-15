@@ -1,0 +1,60 @@
+{
+  "generator_version": 1,
+  "model": {
+    "segments": 60,
+    "regime_means_kbps": [700.0, 2500.0, 6800.0],
+    "transition_matrix": [
+      [0.82, 0.16, 0.02],
+      [0.09, 0.82, 0.09],
+      [0.02, 0.16, 0.82]
+    ],
+    "autoregressive_alpha": 0.72,
+    "log_noise_sigma": 0.18,
+    "minimum_kbps": 300.0,
+    "maximum_kbps": 8000.0
+  },
+  "traces": [
+    {
+      "id": "stage56_validation_low_start",
+      "split": "validation",
+      "seed": 56101,
+      "initial_regime": 0,
+      "path": "bandwidth_traces/stage56_validation_low_start.csv"
+    },
+    {
+      "id": "stage56_validation_mixed_start",
+      "split": "validation",
+      "seed": 56102,
+      "initial_regime": 1,
+      "path": "bandwidth_traces/stage56_validation_mixed_start.csv"
+    },
+    {
+      "id": "stage56_validation_high_start",
+      "split": "validation",
+      "seed": 56103,
+      "initial_regime": 2,
+      "path": "bandwidth_traces/stage56_validation_high_start.csv"
+    },
+    {
+      "id": "stage56_evaluation_low_start",
+      "split": "evaluation",
+      "seed": 56901,
+      "initial_regime": 0,
+      "path": "bandwidth_traces/stage56_evaluation_low_start.csv"
+    },
+    {
+      "id": "stage56_evaluation_mixed_start",
+      "split": "evaluation",
+      "seed": 56902,
+      "initial_regime": 1,
+      "path": "bandwidth_traces/stage56_evaluation_mixed_start.csv"
+    },
+    {
+      "id": "stage56_evaluation_high_start",
+      "split": "evaluation",
+      "seed": 56903,
+      "initial_regime": 2,
+      "path": "bandwidth_traces/stage56_evaluation_high_start.csv"
+    }
+  ]
+}

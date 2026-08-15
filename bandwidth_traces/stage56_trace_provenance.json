@@ -1,0 +1,112 @@
+{
+  "config": "stage56_trace_synthesis_config.json",
+  "config_sha256": "cfd81bb633235b66e123699c16e1a7308baded5a841caff837535dc09ff5ddbe",
+  "generator_module": "trace_synthesis.py",
+  "generator_module_sha256": "f5b1950a1e9be33837dc4aaa19e4681f496f19b141380dc49ab3f937f8bf7adb",
+  "generator_version": 1,
+  "method": "seeded Markov regimes with log-domain AR(1) smoothing",
+  "model": {
+    "autoregressive_alpha": 0.72,
+    "log_noise_sigma": 0.18,
+    "maximum_kbps": 8000.0,
+    "minimum_kbps": 300.0,
+    "regime_means_kbps": [
+      700.0,
+      2500.0,
+      6800.0
+    ],
+    "segments": 60,
+    "transition_matrix": [
+      [
+        0.82,
+        0.16,
+        0.02
+      ],
+      [
+        0.09,
+        0.82,
+        0.09
+      ],
+      [
+        0.02,
+        0.16,
+        0.82
+      ]
+    ]
+  },
+  "source_trace_usage": "none; values are generated without resampling existing traces",
+  "traces": [
+    {
+      "id": "stage56_validation_low_start",
+      "initial_regime": 0,
+      "maximum_kbps": 3912.093786,
+      "mean_kbps": 1419.2467661666667,
+      "minimum_kbps": 442.316461,
+      "path": "bandwidth_traces/stage56_validation_low_start.csv",
+      "seed": 56101,
+      "segments": 60,
+      "sha256": "4ad3754d965e61c9e4a05afc564a3cbc1f65312646532c639845342822de2380",
+      "split": "validation"
+    },
+    {
+      "id": "stage56_validation_mixed_start",
+      "initial_regime": 1,
+      "maximum_kbps": 8000.0,
+      "mean_kbps": 4074.2066792333335,
+      "minimum_kbps": 1286.755176,
+      "path": "bandwidth_traces/stage56_validation_mixed_start.csv",
+      "seed": 56102,
+      "segments": 60,
+      "sha256": "2a5d3feb3ed48ec834138ce213f1ff33fc3ac9d7fcd42f40781f5a663d0eaaba",
+      "split": "validation"
+    },
+    {
+      "id": "stage56_validation_high_start",
+      "initial_regime": 2,
+      "maximum_kbps": 6976.843841,
+      "mean_kbps": 2723.0387228833333,
+      "minimum_kbps": 508.39042,
+      "path": "bandwidth_traces/stage56_validation_high_start.csv",
+      "seed": 56103,
+      "segments": 60,
+      "sha256": "1fb0b17f8aeb8a3ef506ac5b72d6f95004980462c4b66b768088041759605d21",
+      "split": "validation"
+    },
+    {
+      "id": "stage56_evaluation_low_start",
+      "initial_regime": 0,
+      "maximum_kbps": 2628.818212,
+      "mean_kbps": 1296.5777167166666,
+      "minimum_kbps": 515.502215,
+      "path": "bandwidth_traces/stage56_evaluation_low_start.csv",
+      "seed": 56901,
+      "segments": 60,
+      "sha256": "9c068a4562576d540ba1f07d800cb0e8d869038b73048f9b64c41d807c9596c3",
+      "split": "evaluation"
+    },
+    {
+      "id": "stage56_evaluation_mixed_start",
+      "initial_regime": 1,
+      "maximum_kbps": 8000.0,
+      "mean_kbps": 4238.80504025,
+      "minimum_kbps": 730.275343,
+      "path": "bandwidth_traces/stage56_evaluation_mixed_start.csv",
+      "seed": 56902,
+      "segments": 60,
+      "sha256": "9e328968c5397abfadd27530bbb646c6004a2b46d2c74f6c6222301ebb531df3",
+      "split": "evaluation"
+    },
+    {
+      "id": "stage56_evaluation_high_start",
+      "initial_regime": 2,
+      "maximum_kbps": 8000.0,
+      "mean_kbps": 4564.673057616667,
+      "minimum_kbps": 1202.1412,
+      "path": "bandwidth_traces/stage56_evaluation_high_start.csv",
+      "seed": 56903,
+      "segments": 60,
+      "sha256": "7c5eddb47204b4e03d33ebbf10b3670ea9a410cc3aa4b586ea43479d7824951a",
+      "split": "evaluation"
+    }
+  ]
+}

@@ -35,7 +35,7 @@ O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 impl
 | Primeiro conteúdo VVC controlado e escada medida | Implementado (Etapa 5.5b) |
 | Segundo conteúdo VVC controlado e escada medida | Implementado (Etapa 5.5d) |
 | Terceiro conteúdo VVC controlado e escada medida | Implementado (Etapa 5.5f) |
-| Preparação do quarto conteúdo VVC controlado | Implementado (Etapa 5.5g-a) |
+| Fonte do quarto conteúdo VVC controlado | Implementado (Etapa 5.5g-b) |
 | Dataset VVC real e resultados completos | Pendente de execução com as fontes YUV |
 | Rede `tc/netem` | Pendente |
 
@@ -203,9 +203,11 @@ cache retomável e registra SHA-256 de cada PNG e da sequência ordenada. Os
 quadros 1920×800 são centralizados em 1920×1080 com letterbox simétrico, sem
 escala nem descarte. A configuração VVC mede PSNR-Y somente na região ativa
 1920×800; assim, as faixas pretas preservam a geometria do protocolo sem
-inflar a métrica de qualidade. A primeira execução ainda deve congelar no JSON
-o `expected_sequence_sha256` produzido pela proveniência antes da codificação
-definitiva.
+inflar a métrica de qualidade. A aquisição inicial congelou no JSON o digest
+agregado dos 1440 PNGs,
+`1fc3a3c62782b450294563125f7d5e400d4379c4dce9a00fc237ed37fda7f48a`.
+O YUV normalizado possui SHA-256
+`f6033935e2b1a8ef06d8f4d25a78b86147dcc6dfd3638c730a7ab18f59992844`.
 
 ### Importação de pacotes DVB-DASH VVC
 

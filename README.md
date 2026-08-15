@@ -6,7 +6,7 @@ Este repositório contém scripts e materiais relacionados ao trabalho de conclu
 
 ## Status da Implementação
 
-O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico, a Etapa 4 melhora a generalização a rajadas e a Etapa 5.1 conecta tamanhos medidos ao simulador. A **Etapa 5.2** automatiza a codificação controlada com VVenC, a **Etapa 5.2b** importa pacotes DVB-DASH VVC reais, a **Etapa 5.3** seleciona a recompensa em validação e a avalia uma única vez nos benchmarks congelados, a **Etapa 5.4a** adiciona baselines competitivos, a **Etapa 5.4b** corrige o objetivo de startup e congela um novo holdout e a **Etapa 5.4c** executa esse holdout uma única vez.
+O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico, a Etapa 4 melhora a generalização a rajadas e a Etapa 5.1 conecta tamanhos medidos ao simulador. A **Etapa 5.2** automatiza a codificação controlada com VVenC, a **Etapa 5.2b** importa pacotes DVB-DASH VVC reais, a **Etapa 5.3** seleciona a recompensa em validação e a avalia uma única vez nos benchmarks congelados, a **Etapa 5.4a** adiciona baselines competitivos, a **Etapa 5.4b** corrige o objetivo de startup e congela um novo holdout e a **Etapa 5.4c** executa esse holdout uma única vez. A **Etapa 5.5** reúne quatro conteúdos VVC controlados e a **Etapa 5.6a** congela, antes da execução, o protocolo multicontéudo que os avaliará.
 
 | Componente | Estado atual |
 | :--- | :--- |
@@ -35,8 +35,10 @@ O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 impl
 | Primeiro conteúdo VVC controlado e escada medida | Implementado (Etapa 5.5b) |
 | Segundo conteúdo VVC controlado e escada medida | Implementado (Etapa 5.5d) |
 | Terceiro conteúdo VVC controlado e escada medida | Implementado (Etapa 5.5f) |
-| Fonte do quarto conteúdo VVC controlado | Implementado (Etapa 5.5g-b) |
-| Dataset VVC real e resultados completos | Pendente de execução com as fontes YUV |
+| Quarto conteúdo VVC controlado e escada medida | Implementado (Etapa 5.5g-c) |
+| Dataset VVC real com quatro conteúdos | Implementado (Etapa 5.5) |
+| Protocolo multicontéudo e novo holdout | Congelado, ainda não executado (Etapa 5.6a) |
+| Avaliação multicontéudo final | Pendente de execução única (Etapa 5.6b) |
 | Rede `tc/netem` | Pendente |
 
 ### Instalação e testes
@@ -324,6 +326,53 @@ python run_abr_comparison.py \
 
 No holdout, o Q-Learning reduziu rebuffering frente ao estático e aumentou o bitrate útil frente ao BOLA-BASIC, mantendo startup equivalente a ambos. Throughput e RobustMPC obtiveram menos rebuffering e maior recompensa objetiva, enquanto o Q-Learning entregou mais bitrate útil e buffer menos variável. A conclusão é de competitividade parcial, não de superioridade geral. Resultados, IC95%, hashes e atestação estão em `results/dvb_startup_holdout_final/`.
 
+### Protocolo multicontéudo pré-registrado
+
+A Etapa 5.6a congela a extensão multicontéudo antes de qualquer execução nos
+novos traces finais. Ela usa os quatro manifestos VVC controlados da Etapa 5.5,
+dez sementes fixas, três traces inéditos de 60 segmentos e os cinco
+controladores da Etapa 5.4. Não há escala artificial de banda. Os pesos da
+recompensa, a guarda de startup, os hiperparâmetros e os baselines são os já
+selecionados antes desta avaliação.
+
+Para não misturar diferenças próprias das escadas de bitrate, uma Q-table é
+treinada separadamente para cada par conteúdo–semente. A matriz final terá 40
+treinamentos e 600 avaliações (`4 conteúdos × 10 sementes × 3 traces × 5
+controladores`). A generalização para conteúdo não visto, com treino
+*leave-one-content-out*, fica reservada para uma etapa posterior e não deve ser
+confundida com este teste.
+
+A única inferência primária pré-especificada é a diferença pareada
+`Q-Learning − RobustMPC` na recompensa objetiva média, agregada com peso igual
+por conteúdo. Startup, rebuffering, bitrate útil, PSNR-Y e as comparações com os
+demais baselines são secundárias ou descritivas. Em todos os intervalos, cada
+semente contribui com uma observação: primeiro se calculam as médias dos traces
+dentro de conteúdo e semente, depois a média balanceada dos quatro conteúdos e,
+por fim, o IC95% t de Student entre as dez sementes. Segmentos não são tratados
+como réplicas independentes.
+
+Os seis traces podem ser reproduzidos por:
+
+```bash
+python generate_holdout_traces.py \
+  --config stage56_trace_synthesis_config.json \
+  --provenance bandwidth_traces/stage56_trace_provenance.json
+```
+
+O comando abaixo está congelado para a Etapa 5.6b. **Não deve ser executado na
+Etapa 5.6a**, pois cria uma trava persistente antes de carregar o holdout e
+recusa uma segunda execução no mesmo diretório:
+
+```bash
+python run_multi_content_comparison.py \
+  --config stage56_multicontent_comparison_config.json \
+  --output-dir results/stage56_multicontent_final
+```
+
+O protocolo completo e as decisões metodológicas estão em
+`stage56_protocol.md`; hashes e estado pré-execução estão em
+`stage56_pre_execution_attestation.json`.
+
 ## Objetivos
 
 O objetivo geral deste projeto é desenvolver e avaliar metodologicamente uma arquitetura de controle adaptativo para streaming VVC, empregando o algoritmo Q-Learning para a gestão dinâmica da ocupação do buffer. Os objetivos específicos incluem:
@@ -380,12 +429,15 @@ A recompensa por segmento é:
 
 ```text
 r = wq * qualidade
+    - wi * startup_normalizado
     - wr * rebuffering_normalizado
     - ws * troca_de_qualidade
     - wb * déficit_do_buffer
 ```
 
-Os valores padrão são `wq=1`, `wr=10`, `ws=0.25`, `wb=1` e buffer-alvo de 8 segundos. Todos são registrados no modelo e podem ser alterados pela interface de treinamento.
+Os valores padrão são `wq=1`, `wi=0`, `wr=10`, `ws=0.25`, `wb=1` e
+buffer-alvo de 8 segundos. O protocolo congelado da Etapa 5.6 usa `wi=0,5` e
+`wb=2`. Todos os valores são registrados no modelo.
 
 ## Estrutura do Repositório
 
@@ -414,6 +466,10 @@ Os valores padrão são `wq=1`, `wr=10`, `ws=0.25`, `wb=1` e buffer-alvo de 8 se
 *   `dvb_reward_tuning_config.json`: Grade e regra de não inferioridade congeladas.
 *   `dvb_uhd1_hfr_selected_protocol_config.json`: Entrada congelada usada na avaliação final da Etapa 5.3b.
 *   `results/dvb_uhd1_hfr_selected_final/`: Avaliação final congelada e sua atestação de integridade.
+*   `multi_content_comparison.py`: Execução e agregação balanceada dos quatro conteúdos VVC.
+*   `run_multi_content_comparison.py`: CLI com trava para a execução final única da Etapa 5.6b.
+*   `stage56_multicontent_comparison_config.json`: Protocolo multicontéudo congelado.
+*   `stage56_trace_synthesis_config.json`: Sementes e modelo dos novos traces da Etapa 5.6.
 *   `streaming_env.py`: Ambiente de streaming segmentado e dinâmica do buffer.
 *   `controllers.py`: Controladores usados como baseline experimental.
 *   `experiment.py`: Orquestração, métricas agregadas e persistência dos resultados.
@@ -432,7 +488,7 @@ Os valores padrão são `wq=1`, `wr=10`, `ws=0.25`, `wb=1` e buffer-alvo de 8 se
 
 Os traces `stable.csv` e `fluctuating.csv` são as únicas fontes de treinamento. Suas variantes são geradas em memória e não copiam trechos dos demais conjuntos. `validation_bursty.csv` e `validation_mixed.csv` servem para escolher a intensidade da randomização. `evaluation_gradual.csv`, `evaluation_bursty.csv` e `evaluation_challenging.csv` permanecem reservados para a comparação final.
 
-O protocolo atual utiliza múltiplos traces, sementes, intervalos de confiança e separação em três conjuntos. A vertente DVB já contém um manifesto e resultados reais de entrega, incluindo a avaliação única da configuração recalibrada; a vertente VVenC controlada ainda depende das fontes YUV declaradas. As conclusões permanecem restritas ao pacote DVB, à transformação de banda usada e aos traces versionados.
+O protocolo atual utiliza múltiplos traces, sementes, intervalos de confiança e separação em três conjuntos. A vertente DVB já contém um manifesto e resultados reais de entrega, incluindo a avaliação única da configuração recalibrada. A vertente VVenC controlada contém quatro fontes codificadas e manifestos completos; sua avaliação multicontéudo permanece congelada e ainda não executada. As conclusões existentes continuam restritas aos experimentos já concluídos, sem antecipar o resultado da Etapa 5.6b.
 
 ## Componentes Adicionais e Configuração (Opcional)
 

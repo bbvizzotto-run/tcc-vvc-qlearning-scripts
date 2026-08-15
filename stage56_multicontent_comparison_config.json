@@ -1,0 +1,126 @@
+{
+  "comparison_version": 1,
+  "stage": "5.6",
+  "study_status": "frozen_in_stage_5_6a_pending_single_execution_in_stage_5_6b",
+  "parameter_policy": "frozen_before_first_execution_no_evaluation_tuning",
+  "execution_policy": "single_final_execution_after_versioned_freeze",
+  "previous_holdout_status": "not_executed",
+  "confidence_level": 0.95,
+  "seeds": [11, 23, 37, 53, 71, 89, 107, 131, 149, 173],
+  "training_traces": [
+    {
+      "id": "stable",
+      "path": "bandwidth_traces/stable.csv",
+      "bandwidth_scale": 1.0
+    },
+    {
+      "id": "fluctuating",
+      "path": "bandwidth_traces/fluctuating.csv",
+      "bandwidth_scale": 1.0
+    }
+  ],
+  "evaluation_traces": [
+    {
+      "id": "stage56_evaluation_low_start",
+      "path": "bandwidth_traces/stage56_evaluation_low_start.csv",
+      "bandwidth_scale": 1.0
+    },
+    {
+      "id": "stage56_evaluation_mixed_start",
+      "path": "bandwidth_traces/stage56_evaluation_mixed_start.csv",
+      "bandwidth_scale": 1.0
+    },
+    {
+      "id": "stage56_evaluation_high_start",
+      "path": "bandwidth_traces/stage56_evaluation_high_start.csv",
+      "bandwidth_scale": 1.0
+    }
+  ],
+  "contents": [
+    {
+      "id": "big_buck_bunny",
+      "segment_manifest": "segment_manifests/stage55/big_buck_bunny_measured.csv"
+    },
+    {
+      "id": "elephants_dream",
+      "segment_manifest": "segment_manifests/stage55/elephants_dream_measured.csv"
+    },
+    {
+      "id": "sita_sings_the_blues",
+      "segment_manifest": "segment_manifests/stage55/sita_sings_the_blues_measured.csv"
+    },
+    {
+      "id": "tears_of_steel",
+      "segment_manifest": "segment_manifests/stage55/tears_of_steel_measured.csv"
+    }
+  ],
+  "expected_segments": 60,
+  "expected_representations": 4,
+  "experiment_config": {
+    "segment_duration_s": 1.0,
+    "startup_buffer_s": 4.0,
+    "max_buffer_s": 20.0,
+    "low_buffer_s": 4.0,
+    "high_buffer_s": 10.0
+  },
+  "training_config": {
+    "episodes": 4000,
+    "learning_rate": 0.1,
+    "discount_factor": 0.95,
+    "epsilon_start": 1.0,
+    "epsilon_min": 0.05,
+    "epsilon_decay": 0.995,
+    "buffer_boundaries_s": [2.0, 4.0, 6.0, 8.0, 12.0, 16.0],
+    "startup_guard": true
+  },
+  "reward_config": {
+    "quality_weight": 1.0,
+    "rebuffering_weight": 10.0,
+    "switch_weight": 0.25,
+    "low_buffer_weight": 2.0,
+    "startup_weight": 0.5,
+    "target_buffer_s": 8.0
+  },
+  "throughput": {
+    "history_window": 5,
+    "safety_factor": 0.85
+  },
+  "bola_basic": {
+    "minimum_buffer_s": 10.0,
+    "buffer_target_s": 20.0
+  },
+  "robust_mpc": {
+    "horizon": 5,
+    "history_window": 5,
+    "error_window": 5
+  },
+  "primary_metrics": ["mean_objective_reward"],
+  "secondary_metrics": [
+    "startup_delay_s",
+    "rebuffering_s",
+    "rebuffering_rate_percent",
+    "average_bitrate_kbps",
+    "average_payload_bitrate_kbps",
+    "buffer_mean_s",
+    "buffer_std_s",
+    "mean_quality_utility",
+    "mean_psnr_y_db",
+    "switch_count",
+    "high_representation_fraction_percent"
+  ],
+  "primary_contrast": {
+    "scope": "overall_content_balanced_per_seed",
+    "baseline": "robust-mpc",
+    "metric": "mean_objective_reward",
+    "alternative": "two_sided"
+  },
+  "references": {
+    "frozen_reward_protocol": "dvb_uhd1_hfr_startup_guard_selected_protocol_config.json",
+    "previous_holdout_results": "results/dvb_startup_holdout_final/manifest.json",
+    "controlled_vvc_dataset": "segment_manifests/stage55/README.md",
+    "trace_generator": "stage56_trace_synthesis_config.json",
+    "trace_provenance": "bandwidth_traces/stage56_trace_provenance.json",
+    "bola": "https://arxiv.org/abs/1601.06748",
+    "robust_mpc": "https://doi.org/10.1145/2785956.2787486"
+  }
+}

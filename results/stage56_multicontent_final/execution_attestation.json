@@ -1,0 +1,67 @@
+{
+  "stage": "5.6b",
+  "status": "single_multicontent_holdout_execution_completed",
+  "pre_execution_freeze_merge_commit": "0d68ae203b94872e452280d8ae8e8945df6ac746",
+  "executed_source_commit": "5de8228d4d46a0c2af06a57db4fae7ad9fe4483d",
+  "algorithm_and_protocol_freeze_commit": "eff55f61593ce9cbdc78b1848bde04bc62c25798",
+  "results_branch": "agent/stage-5.6b-multicontent-results",
+  "command": "python run_multi_content_comparison.py --config stage56_multicontent_comparison_config.json --output-dir results/stage56_multicontent_final",
+  "execution_policy": "single_final_execution_after_versioned_freeze",
+  "execution_count": 1,
+  "exit_code": 0,
+  "started_at_utc": "2026-08-15T15:33:05.329961+00:00",
+  "results_persisted_at_utc": "2026-08-15T15:46:05.612568+00:00",
+  "attested_at_utc": "2026-08-15T15:48:55Z",
+  "post_freeze_parameter_changes": false,
+  "rerun_performed": false,
+  "observed_matrix": {
+    "contents": 4,
+    "training_seeds": 10,
+    "evaluation_traces": 3,
+    "controllers": 5,
+    "content_specific_trainings": 40,
+    "evaluation_runs": 600,
+    "aggregate_rows": 1020,
+    "paired_difference_rows": 816,
+    "duplicate_run_keys": 0,
+    "non_finite_primary_or_secondary_values": 0
+  },
+  "primary_result": {
+    "delta": "q-learning_minus_robust-mpc",
+    "metric": "mean_objective_reward",
+    "scope": "overall_content_balanced_per_seed",
+    "n": 10,
+    "mean": -0.6753627866836374,
+    "ci95_low": -0.7737822114630142,
+    "ci95_high": -0.5769433619042605,
+    "ci95_excludes_zero": true,
+    "interpretation": "the pre-specified primary contrast favors RobustMPC"
+  },
+  "environment": {
+    "python": "3.12.13",
+    "numpy": "2.3.5",
+    "platform": "Linux-6.18.35-x86_64-with-glibc2.39"
+  },
+  "artifacts_sha256": {
+    "stage56_pre_execution_attestation.json": "d59990a00d2ec325a23cec7d7a81573d331c0fd941815d3864e7c6b58061b311",
+    ".execution_started.json": "31140fa5be519205597dcb663f7dc9a7fb4950621905c3322d1f0b41fd6fc6a0",
+    "raw_runs.csv": "2235a33bbfb1df9379c434947afbba97bd0cbce15f54735e107a7f7cd0d34690",
+    "aggregate.csv": "377d1430c060011603ecf20e53a110e1a671fd34b7cc6f76624142249a296d75",
+    "paired_differences.csv": "9b7fd320695ef247f847f7eb2eb1cb4a5e3b166bf016fe4d477b517eff80b2d2",
+    "training_summary.csv": "9c81a98219197e0cccf3ed90998e117ed39ad04b966616350c3617f61991c64c",
+    "manifest.json": "93622ffed20218d953e43589f6acae0d8ba8e039edd428cc0fb5a60cd91f001a",
+    "final_results.md": "79777baa9c3ca88a70a21e0b8121ca8f7a448318680d0c797ff94c99c856e9de"
+  },
+  "validation": {
+    "post_execution_unit_tests": 108,
+    "post_execution_unit_test_status": "passed",
+    "expected_run_count_matches": true,
+    "expected_aggregate_count_matches": true,
+    "expected_paired_difference_count_matches": true,
+    "expected_training_count_matches": true,
+    "run_keys_are_unique": true,
+    "all_checked_values_are_finite": true,
+    "manifest_statistical_unit": "training_seed",
+    "primary_contrast_matches_pre_registration": true
+  }
+}

@@ -1,0 +1,374 @@
+{
+  "artifacts": {
+    "aggregate": {
+      "path": "aggregate.csv",
+      "sha256": "377d1430c060011603ecf20e53a110e1a671fd34b7cc6f76624142249a296d75"
+    },
+    "paired_differences": {
+      "path": "paired_differences.csv",
+      "sha256": "9b7fd320695ef247f847f7eb2eb1cb4a5e3b166bf016fe4d477b517eff80b2d2"
+    },
+    "raw_runs": {
+      "path": "raw_runs.csv",
+      "sha256": "2235a33bbfb1df9379c434947afbba97bd0cbce15f54735e107a7f7cd0d34690"
+    },
+    "training_summary": {
+      "path": "training_summary.csv",
+      "sha256": "9c81a98219197e0cccf3ed90998e117ed39ad04b966616350c3617f61991c64c"
+    }
+  },
+  "baselines": {
+    "bola_basic": {
+      "buffer_target_s": 20.0,
+      "minimum_buffer_s": 10.0
+    },
+    "robust_mpc": {
+      "error_window": 5,
+      "history_window": 5,
+      "horizon": 5
+    },
+    "static": {
+      "high_buffer_s": 10.0,
+      "low_buffer_s": 4.0
+    },
+    "throughput": {
+      "history_window": 5,
+      "safety_factor": 0.85
+    }
+  },
+  "better_when": {
+    "average_bitrate_kbps": "higher",
+    "average_payload_bitrate_kbps": "higher",
+    "buffer_mean_s": "descriptive",
+    "buffer_std_s": "lower",
+    "high_representation_fraction_percent": "descriptive",
+    "mean_objective_reward": "higher",
+    "mean_psnr_y_db": "higher",
+    "mean_quality_utility": "higher",
+    "rebuffering_rate_percent": "lower",
+    "rebuffering_s": "lower",
+    "startup_delay_s": "lower",
+    "switch_count": "lower"
+  },
+  "comparison_config": {
+    "path": "stage56_multicontent_comparison_config.json",
+    "sha256": "5bd5de818f9bc7e182f473914e6d3a0270b5902c447aba891c7260941981aa64"
+  },
+  "comparison_version": 1,
+  "confidence_level": 0.95,
+  "confidence_method": "two-sided Student t interval for the mean",
+  "contents": [
+    {
+      "id": "big_buck_bunny",
+      "manifest": {
+        "bitrates_kbps": [
+          1019,
+          1692,
+          2610,
+          3632
+        ],
+        "manifest_sha256": "f89cebc38eaaaa3f2b16b50664c79b8dd366147680cc4238d97b217143bb633a",
+        "representations": [
+          {
+            "bitrate_kbps": 1019,
+            "encoder_target_kbps": 1000,
+            "representation_id": "L0"
+          },
+          {
+            "bitrate_kbps": 1692,
+            "encoder_target_kbps": 2000,
+            "representation_id": "L1"
+          },
+          {
+            "bitrate_kbps": 2610,
+            "encoder_target_kbps": 4000,
+            "representation_id": "L2"
+          },
+          {
+            "bitrate_kbps": 3632,
+            "encoder_target_kbps": 8000,
+            "representation_id": "L3"
+          }
+        ],
+        "segment_count": 60,
+        "sequence": "big_buck_bunny",
+        "size_unit": "bytes",
+        "source": "big_buck_bunny_measured.csv"
+      },
+      "path": "segment_manifests/stage55/big_buck_bunny_measured.csv",
+      "sha256": "f89cebc38eaaaa3f2b16b50664c79b8dd366147680cc4238d97b217143bb633a"
+    },
+    {
+      "id": "elephants_dream",
+      "manifest": {
+        "bitrates_kbps": [
+          1064,
+          1847,
+          3097,
+          5182
+        ],
+        "manifest_sha256": "9608da2b98c98a00399b05782fe34b3877aec6f154c436fdbdc44c14911a6e49",
+        "representations": [
+          {
+            "bitrate_kbps": 1064,
+            "encoder_target_kbps": 1000,
+            "representation_id": "L0"
+          },
+          {
+            "bitrate_kbps": 1847,
+            "encoder_target_kbps": 2000,
+            "representation_id": "L1"
+          },
+          {
+            "bitrate_kbps": 3097,
+            "encoder_target_kbps": 4000,
+            "representation_id": "L2"
+          },
+          {
+            "bitrate_kbps": 5182,
+            "encoder_target_kbps": 8000,
+            "representation_id": "L3"
+          }
+        ],
+        "segment_count": 60,
+        "sequence": "elephants_dream",
+        "size_unit": "bytes",
+        "source": "elephants_dream_measured.csv"
+      },
+      "path": "segment_manifests/stage55/elephants_dream_measured.csv",
+      "sha256": "9608da2b98c98a00399b05782fe34b3877aec6f154c436fdbdc44c14911a6e49"
+    },
+    {
+      "id": "sita_sings_the_blues",
+      "manifest": {
+        "bitrates_kbps": [
+          973,
+          1801,
+          3219,
+          5583
+        ],
+        "manifest_sha256": "3cfed194b8554928b9e9eb4d133ab4d2f83e846ab26f80b93de0b1a2fc695cae",
+        "representations": [
+          {
+            "bitrate_kbps": 973,
+            "encoder_target_kbps": 1000,
+            "representation_id": "L0"
+          },
+          {
+            "bitrate_kbps": 1801,
+            "encoder_target_kbps": 2000,
+            "representation_id": "L1"
+          },
+          {
+            "bitrate_kbps": 3219,
+            "encoder_target_kbps": 4000,
+            "representation_id": "L2"
+          },
+          {
+            "bitrate_kbps": 5583,
+            "encoder_target_kbps": 8000,
+            "representation_id": "L3"
+          }
+        ],
+        "segment_count": 60,
+        "sequence": "sita_sings_the_blues",
+        "size_unit": "bytes",
+        "source": "sita_sings_the_blues_measured.csv"
+      },
+      "path": "segment_manifests/stage55/sita_sings_the_blues_measured.csv",
+      "sha256": "3cfed194b8554928b9e9eb4d133ab4d2f83e846ab26f80b93de0b1a2fc695cae"
+    },
+    {
+      "id": "tears_of_steel",
+      "manifest": {
+        "bitrates_kbps": [
+          894,
+          1487,
+          2327,
+          3593
+        ],
+        "manifest_sha256": "ce2f9591bb2a553c7742ac84d98eaf56878f71b0238c90742e42712524d258a3",
+        "representations": [
+          {
+            "bitrate_kbps": 894,
+            "encoder_target_kbps": 1000,
+            "representation_id": "L0"
+          },
+          {
+            "bitrate_kbps": 1487,
+            "encoder_target_kbps": 2000,
+            "representation_id": "L1"
+          },
+          {
+            "bitrate_kbps": 2327,
+            "encoder_target_kbps": 4000,
+            "representation_id": "L2"
+          },
+          {
+            "bitrate_kbps": 3593,
+            "encoder_target_kbps": 8000,
+            "representation_id": "L3"
+          }
+        ],
+        "segment_count": 60,
+        "sequence": "tears_of_steel",
+        "size_unit": "bytes",
+        "source": "tears_of_steel_measured.csv"
+      },
+      "path": "segment_manifests/stage55/tears_of_steel_measured.csv",
+      "sha256": "ce2f9591bb2a553c7742ac84d98eaf56878f71b0238c90742e42712524d258a3"
+    }
+  ],
+  "controllers": [
+    "static",
+    "throughput",
+    "bola-basic",
+    "robust-mpc",
+    "q-learning"
+  ],
+  "decision_information_policy": "only completed-segment throughput, current buffer, and public segment metadata; no current-segment bandwidth",
+  "delta_definitions": [
+    "q-learning_minus_static",
+    "q-learning_minus_throughput",
+    "q-learning_minus_bola-basic",
+    "q-learning_minus_robust-mpc"
+  ],
+  "evaluation_traces": [
+    {
+      "bandwidth_scale": 1.0,
+      "id": "stage56_evaluation_low_start",
+      "path": "stage56_evaluation_low_start.csv",
+      "sha256": "9c068a4562576d540ba1f07d800cb0e8d869038b73048f9b64c41d807c9596c3"
+    },
+    {
+      "bandwidth_scale": 1.0,
+      "id": "stage56_evaluation_mixed_start",
+      "path": "stage56_evaluation_mixed_start.csv",
+      "sha256": "9e328968c5397abfadd27530bbb646c6004a2b46d2c74f6c6222301ebb531df3"
+    },
+    {
+      "bandwidth_scale": 1.0,
+      "id": "stage56_evaluation_high_start",
+      "path": "stage56_evaluation_high_start.csv",
+      "sha256": "7c5eddb47204b4e03d33ebbf10b3670ea9a410cc3aa4b586ea43479d7824951a"
+    }
+  ],
+  "execution_marker": {
+    "path": ".execution_started.json",
+    "sha256": "31140fa5be519205597dcb663f7dc9a7fb4950621905c3322d1f0b41fd6fc6a0"
+  },
+  "execution_policy": "single_final_execution_after_versioned_freeze",
+  "experiment_config": {
+    "high_buffer_s": 10.0,
+    "low_buffer_s": 4.0,
+    "max_buffer_s": 20.0,
+    "segment_duration_s": 1.0,
+    "startup_buffer_s": 4.0
+  },
+  "metrics": [
+    "startup_delay_s",
+    "rebuffering_s",
+    "rebuffering_rate_percent",
+    "average_bitrate_kbps",
+    "average_payload_bitrate_kbps",
+    "buffer_mean_s",
+    "buffer_std_s",
+    "mean_objective_reward",
+    "mean_quality_utility",
+    "mean_psnr_y_db",
+    "switch_count",
+    "high_representation_fraction_percent"
+  ],
+  "model_artifacts": "not persisted; deterministic q_table hashes are in training_summary.csv",
+  "multiplicity_policy": "one pre-specified primary contrast; all other controller and metric comparisons are secondary or descriptive",
+  "overall_method": "average traces within each content and seed, then average contents with equal weight within each seed, then compute CI across seeds",
+  "parameter_policy": "frozen_before_first_execution_no_evaluation_tuning",
+  "previous_holdout_status": "not_executed",
+  "primary_contrast": {
+    "alternative": "two_sided",
+    "baseline": "robust-mpc",
+    "metric": "mean_objective_reward",
+    "scope": "overall_content_balanced_per_seed"
+  },
+  "primary_metrics": [
+    "mean_objective_reward"
+  ],
+  "references": {
+    "bola": "https://arxiv.org/abs/1601.06748",
+    "controlled_vvc_dataset": "segment_manifests/stage55/README.md",
+    "frozen_reward_protocol": "dvb_uhd1_hfr_startup_guard_selected_protocol_config.json",
+    "previous_holdout_results": "results/dvb_startup_holdout_final/manifest.json",
+    "robust_mpc": "https://doi.org/10.1145/2785956.2787486",
+    "trace_generator": "stage56_trace_synthesis_config.json",
+    "trace_provenance": "bandwidth_traces/stage56_trace_provenance.json"
+  },
+  "reward_config": {
+    "low_buffer_weight": 2.0,
+    "quality_weight": 1.0,
+    "rebuffering_weight": 10.0,
+    "startup_weight": 0.5,
+    "switch_weight": 0.25,
+    "target_buffer_s": 8.0
+  },
+  "secondary_metrics": [
+    "startup_delay_s",
+    "rebuffering_s",
+    "rebuffering_rate_percent",
+    "average_bitrate_kbps",
+    "average_payload_bitrate_kbps",
+    "buffer_mean_s",
+    "buffer_std_s",
+    "mean_quality_utility",
+    "mean_psnr_y_db",
+    "switch_count",
+    "high_representation_fraction_percent"
+  ],
+  "seeds": [
+    11,
+    23,
+    37,
+    53,
+    71,
+    89,
+    107,
+    131,
+    149,
+    173
+  ],
+  "stage": "5.6",
+  "statistical_unit": "training_seed",
+  "study_status": "frozen_in_stage_5_6a_pending_single_execution_in_stage_5_6b",
+  "training_config": {
+    "buffer_boundaries_s": [
+      2.0,
+      4.0,
+      6.0,
+      8.0,
+      12.0,
+      16.0
+    ],
+    "discount_factor": 0.95,
+    "episodes": 4000,
+    "epsilon_decay": 0.995,
+    "epsilon_min": 0.05,
+    "epsilon_start": 1.0,
+    "learning_rate": 0.1,
+    "seed": 11,
+    "startup_guard": true
+  },
+  "training_mode": "one content-specific Q-table per content and seed; no pooling between contents",
+  "training_traces": [
+    {
+      "bandwidth_scale": 1.0,
+      "id": "stable",
+      "path": "stable.csv",
+      "sha256": "45219bc737bd9cf4f7cfd837cf706b19d3c37f97c168705eeb2e16f169737bbf"
+    },
+    {
+      "bandwidth_scale": 1.0,
+      "id": "fluctuating",
+      "path": "fluctuating.csv",
+      "sha256": "1e7bdcef6438c8a1025b9e79ab28daa8330e5e595dc7e2310b0a9896afeb1566"
+    }
+  ]
+}

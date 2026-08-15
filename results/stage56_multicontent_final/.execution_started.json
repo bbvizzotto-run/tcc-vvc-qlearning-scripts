@@ -1,0 +1,8 @@
+{
+  "config": "stage56_multicontent_comparison_config.json",
+  "execution_policy": "single_final_execution_after_versioned_freeze",
+  "output_dir": "results/stage56_multicontent_final",
+  "stage": "5.6",
+  "started_at_utc": "2026-08-15T15:33:05.329961+00:00",
+  "status": "execution_started"
+}

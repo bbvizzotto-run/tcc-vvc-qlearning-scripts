@@ -1,0 +1,6 @@
+Controller,Objective reward,Rebuffering (%),Startup delay (s),Payload bitrate (kbps),PSNR-Y (dB),Representation switches
+Static,-0.133,1.242,1.736,2305.1,44.426,3.917
+Throughput,-0.132,0.366,2.339,2091.0,44.389,7.917
+BOLA-BASIC,-0.251,1.563,1.736,2249.7,44.575,7.667
+RobustMPC,0.028,0.446,2.913,2364.8,44.777,7.500
+Q-Learning,-0.647,4.208,1.736,2017.8,44.315,21.767

@@ -6,7 +6,7 @@ Este repositório contém scripts e materiais relacionados ao trabalho de conclu
 
 ## Status da Implementação
 
-O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico, a Etapa 4 melhora a generalização a rajadas e a Etapa 5.1 conecta tamanhos medidos ao simulador. A **Etapa 5.2** automatiza a codificação controlada com VVenC, a **Etapa 5.2b** importa pacotes DVB-DASH VVC reais, a **Etapa 5.3** seleciona a recompensa em validação e a avalia uma única vez nos benchmarks congelados, a **Etapa 5.4a** adiciona baselines competitivos, a **Etapa 5.4b** corrige o objetivo de startup e congela um novo holdout e a **Etapa 5.4c** executa esse holdout uma única vez. A **Etapa 5.5** reúne quatro conteúdos VVC controlados, a **Etapa 5.6a** congela o protocolo multicontéudo e a **Etapa 5.6b** o executa uma única vez.
+O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 implementam o ambiente, o baseline e o Q-Learning. A Etapa 3 adiciona o protocolo estatístico, a Etapa 4 melhora a generalização a rajadas e a Etapa 5.1 conecta tamanhos medidos ao simulador. A **Etapa 5.2** automatiza a codificação controlada com VVenC, a **Etapa 5.2b** importa pacotes DVB-DASH VVC reais, a **Etapa 5.3** seleciona a recompensa em validação e a avalia uma única vez nos benchmarks congelados, a **Etapa 5.4a** adiciona baselines competitivos, a **Etapa 5.4b** corrige o objetivo de startup e congela um novo holdout e a **Etapa 5.4c** executa esse holdout uma única vez. A **Etapa 5.5** reúne quatro conteúdos VVC controlados, a **Etapa 5.6a** congela o protocolo multicontéudo, a **Etapa 5.6b** o executa uma única vez e a **Etapa 5.7a** transforma os resultados congelados em figuras e tabelas para o artigo científico.
 
 | Componente | Estado atual |
 | :--- | :--- |
@@ -37,8 +37,9 @@ O desenvolvimento está organizado em etapas verificáveis. As Etapas 1 e 2 impl
 | Terceiro conteúdo VVC controlado e escada medida | Implementado (Etapa 5.5f) |
 | Quarto conteúdo VVC controlado e escada medida | Implementado (Etapa 5.5g-c) |
 | Dataset VVC real com quatro conteúdos | Implementado (Etapa 5.5) |
-| Protocolo multicontéudo e novo holdout | Congelado, ainda não executado (Etapa 5.6a) |
+| Protocolo multicontéudo e novo holdout | Congelado antes da execução final (Etapa 5.6a) |
 | Avaliação multicontéudo final | Executada uma única vez (Etapa 5.6b) |
+| Figuras, tabelas e manifesto científico | Implementado (Etapa 5.7a) |
 | Rede `tc/netem` | Pendente |
 
 ### Instalação e testes
@@ -49,6 +50,17 @@ Requer Python 3.10 ou superior. Na raiz do repositório, execute:
 python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
 ```
+
+Os artefatos científicos usam dependências separadas e não reexecutam o
+experimento final:
+
+```bash
+python -m pip install -r requirements-paper.txt
+python generate_paper_assets.py
+```
+
+O título, os hashes congelados, as figuras vetoriais, as tabelas e o esqueleto
+do manuscrito estão documentados em `paper/`.
 
 ### Treinamento do Q-Learning
 
